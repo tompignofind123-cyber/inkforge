@@ -1,0 +1,451 @@
+export type Lang = "zh" | "en" | "ja";
+
+export const SUPPORTED_LANGS: readonly Lang[] = ["zh", "en", "ja"] as const;
+
+export function isLang(v: unknown): v is Lang {
+  return v === "zh" || v === "en" || v === "ja";
+}
+
+export function coerceLang(v: unknown, fallback: Lang = "zh"): Lang {
+  return isLang(v) ? v : fallback;
+}
+
+export function getAnalysisThreshold(lang: Lang): number {
+  switch (lang) {
+    case "zh":
+      return 200;
+    case "en":
+      return 400;
+    case "ja":
+      return 500;
+  }
+}
+
+/**
+ * Count meaningful units for analysis threshold:
+ *  - zh/ja: graphemes that include letters/digits
+ *  - en:    whitespace-separated words
+ *
+ * Intl.Segmenter is available in Node 16+ and modern Chromium (Electron 30+).
+ */
+export function countUnits(text: string, lang: Lang): number {
+  if (!text) return 0;
+  if (lang === "en") {
+    return text.trim().split(/\s+/).filter(Boolean).length;
+  }
+  if (typeof Intl !== "undefined" && typeof (Intl as { Segmenter?: unknown }).Segmenter === "function") {
+    type SegmenterCtor = new (lang: string, opts: { granularity: "grapheme" }) => {
+      segment(s: string): Iterable<{ segment: string }>;
+    };
+    const SegmenterImpl = (Intl as unknown as { Segmenter: SegmenterCtor }).Segmenter;
+    const seg = new SegmenterImpl(lang, { granularity: "grapheme" });
+    let n = 0;
+    for (const s of seg.segment(text)) {
+      if (/\p{L}|\p{N}/u.test(s.segment)) n += 1;
+    }
+    return n;
+  }
+  // Fallback: count non-whitespace chars
+  return [...text].filter((ch) => !/\s/.test(ch)).length;
+}
+
+/**
+ * Count the three stats for the StatusBar: Chinese/Japanese chars,
+ * English words, and a rough token estimate (~4 chars per token).
+ */
+export interface WordStats {
+  cjk: number;
+  en: number;
+  tokens: number;
+}
+
+export function computeWordStats(text: string): WordStats {
+  if (!text) return { cjk: 0, en: 0, tokens: 0 };
+  const cjk = (text.match(/[\u3400-\u9fff\u3040-\u30ff\uac00-\ud7af]/g) ?? []).length;
+  const en = (text.match(/[A-Za-z]+(?:'[A-Za-z]+)?/g) ?? []).length;
+  const tokens = Math.ceil(text.length / 4);
+  return { cjk, en, tokens };
+}
+
+type Resources = Record<string, Record<Lang, string>>;
+
+export const i18nResources: Resources = {
+  // Common
+  "common.save": { zh: "保存", en: "Save", ja: "保存" },
+  "common.cancel": { zh: "取消", en: "Cancel", ja: "キャンセル" },
+  "common.confirm": { zh: "确定", en: "Confirm", ja: "確定" },
+  "common.delete": { zh: "删除", en: "Delete", ja: "削除" },
+  "common.edit": { zh: "编辑", en: "Edit", ja: "編集" },
+  "common.close": { zh: "关闭", en: "Close", ja: "閉じる" },
+  "common.loading": { zh: "加载中…", en: "Loading…", ja: "読み込み中…" },
+  "common.retry": { zh: "重试", en: "Retry", ja: "再試行" },
+  "common.copy": { zh: "复制", en: "Copy", ja: "コピー" },
+  "common.search": { zh: "搜索", en: "Search", ja: "検索" },
+  "common.settings": { zh: "设置", en: "Settings", ja: "設定" },
+  "common.back": { zh: "返回", en: "Back", ja: "戻る" },
+  "common.next": { zh: "下一步", en: "Next", ja: "次へ" },
+  "common.finish": { zh: "完成", en: "Finish", ja: "完了" },
+  "common.open": { zh: "打开", en: "Open", ja: "開く" },
+  "common.refresh": { zh: "刷新", en: "Refresh", ja: "更新" },
+  "common.new": { zh: "新建", en: "New", ja: "新規" },
+  "common.install": { zh: "安装", en: "Install", ja: "インストール" },
+  "common.enable": { zh: "启用", en: "Enable", ja: "有効化" },
+  "common.disable": { zh: "禁用", en: "Disable", ja: "無効化" },
+
+  // App brand
+  "app.name": { zh: "墨炉 · InkForge", en: "InkForge", ja: "InkForge" },
+  "app.tagline": {
+    zh: "小说创作工作台",
+    en: "A novel writing workbench with AI companions",
+    ja: "AI が静かに寄り添う小説創作ワークベンチ",
+  },
+
+  // ActivityBar / pages
+  "page.workspace": { zh: "写作", en: "Write", ja: "執筆" },
+  "page.skill": { zh: "Skill", en: "Skills", ja: "スキル" },
+  "page.character": { zh: "角色", en: "Characters", ja: "キャラ" },
+  "page.tavern": { zh: "酒馆", en: "Tavern", ja: "酒場" },
+  "page.world": { zh: "世界观", en: "Worldbuilding", ja: "世界設定" },
+  "page.research": { zh: "资料", en: "Research", ja: "資料" },
+  "page.review": { zh: "审查", en: "Review", ja: "レビュー" },
+
+  // Editor
+  "editor.placeholder": {
+    zh: "开始写作…",
+    en: "Start writing…",
+    ja: "執筆を始めましょう…",
+  },
+  "editor.newChapter": { zh: "新建章节", en: "New chapter", ja: "新しい章" },
+  "editor.import": { zh: "导入", en: "Import", ja: "インポート" },
+  "editor.export": { zh: "导出", en: "Export", ja: "エクスポート" },
+
+  // Crash recovery banner
+  "crashBanner.title": { zh: "上次未正常退出", en: "Unclean shutdown detected", ja: "前回は正常に終了しませんでした" },
+  "crashBanner.body": {
+    zh: "工作区已自动恢复；如有异常请从「开发者 → 诊断快照」导出报告。",
+    en: "Workspace auto-recovered; if anything looks off, export a snapshot from Developer → Diagnostics.",
+    ja: "ワークスペースは自動復旧済み。問題があれば「開発者 → 診断スナップショット」で出力してください。",
+  },
+  "crashBanner.dismiss": { zh: "我知道了", en: "Dismiss", ja: "閉じる" },
+  "crashBanner.showDetails": { zh: "查看详情", en: "Show details", ja: "詳細を表示" },
+  "crashBanner.hideDetails": { zh: "收起", en: "Hide", ja: "閉じる" },
+
+  // Settings
+  "settings.title": { zh: "设置", en: "Settings", ja: "設定" },
+  "settings.section.writing": { zh: "写作", en: "Writing", ja: "執筆" },
+  "settings.section.appearance": { zh: "外观", en: "Appearance", ja: "外観" },
+  "settings.section.advanced": { zh: "高级", en: "Advanced", ja: "詳細設定" },
+  "settings.analysisEnabled": { zh: "启用后台 AI 分析", en: "Enable background AI analysis", ja: "バックグラウンド AI 解析を有効化" },
+  "settings.analysisThreshold": { zh: "分析触发阈值", en: "Analysis threshold", ja: "解析トリガー閾値" },
+  "settings.analysisThresholdHint": {
+    zh: "每写 {{n}} 字触发一次（阈值随语言自动变化）",
+    en: "Fires every {{n}} words (auto-adapts to language)",
+    ja: "{{n}} 文字ごとに発火（言語に応じて自動調整）",
+  },
+  "settings.uiLanguage": { zh: "界面语言", en: "UI language", ja: "表示言語" },
+  "settings.theme": { zh: "主题", en: "Theme", ja: "テーマ" },
+  "settings.theme.dark": { zh: "深色", en: "Dark", ja: "ダーク" },
+  "settings.theme.light": { zh: "浅色", en: "Light", ja: "ライト" },
+  "settings.devMode": { zh: "启用开发者模式", en: "Enable developer mode", ja: "開発者モードを有効化" },
+  "settings.devModeHint": {
+    zh: "显示开发者菜单与诊断摘要入口",
+    en: "Shows the Developer menu and diagnostic snapshot",
+    ja: "開発者メニューと診断スナップショットを表示",
+  },
+
+  // Status bar
+  "status.words": { zh: "字数", en: "Words", ja: "文字数" },
+  "status.dailyGoal": { zh: "今日目标", en: "Daily goal", ja: "本日の目標" },
+  "status.analysisOff": { zh: "分析已关闭", en: "Analysis off", ja: "解析オフ" },
+
+  // Onboarding
+  "onboarding.step.welcome": { zh: "欢迎", en: "Welcome", ja: "ようこそ" },
+  "onboarding.step.language": { zh: "选择语言", en: "Pick a language", ja: "言語を選択" },
+  "onboarding.step.workspace": { zh: "工作目录", en: "Workspace", ja: "作業フォルダ" },
+  "onboarding.step.provider": { zh: "AI Provider", en: "AI Provider", ja: "AI プロバイダ" },
+  "onboarding.step.sample": { zh: "示例项目", en: "Sample project", ja: "サンプル" },
+  "onboarding.step.done": { zh: "完成", en: "All set", ja: "完了" },
+  "onboarding.language.title": {
+    zh: "先选一下界面语言",
+    en: "Pick your UI language",
+    ja: "UI の言語を選びましょう",
+  },
+  "onboarding.language.note": {
+    zh: "之后可以在「设置 → 写作」里随时切换。",
+    en: "You can switch any time from Settings → Writing.",
+    ja: "「設定 → 執筆」からいつでも切り替え可能です。",
+  },
+
+  // Errors
+  // Onboarding provider (M6 catalog integration)
+  "onboarding.provider.title": {
+    zh: "配置 AI Provider",
+    en: "Configure AI Provider",
+    ja: "AI プロバイダー設定",
+  },
+  "onboarding.provider.subtitle": {
+    zh: "可直接选择 DeepSeek、Kimi、Qwen、Groq、OpenRouter、Ollama 等预设。",
+    en: "Choose a preset for DeepSeek, Kimi, Qwen, Groq, OpenRouter, Ollama, and more.",
+    ja: "DeepSeek、Kimi、Qwen、Groq、OpenRouter、Ollama などのプリセットを選択できます。",
+  },
+  "onboarding.provider.preset": { zh: "Provider 预设", en: "Provider Preset", ja: "プロバイダー プリセット" },
+  "onboarding.provider.custom": { zh: "自定义", en: "Custom", ja: "カスタム" },
+  "onboarding.provider.name": { zh: "Provider 名称", en: "Provider Name", ja: "プロバイダー名" },
+  "onboarding.provider.vendor": { zh: "厂商类型", en: "Vendor", ja: "ベンダー" },
+  "onboarding.provider.defaultModel": { zh: "默认模型", en: "Default Model", ja: "デフォルトモデル" },
+  "onboarding.provider.apiKey": { zh: "API Key", en: "API Key", ja: "API キー" },
+  "onboarding.provider.apiKeyPlaceholderAnthropic": { zh: "sk-ant-...", en: "sk-ant-...", ja: "sk-ant-..." },
+  "onboarding.provider.apiKeyPlaceholderOptional": {
+    zh: "API Key（本地 openai-compat 可选）",
+    en: "API key (optional for local openai-compat)",
+    ja: "API キー（ローカル openai-compat では任意）",
+  },
+  "onboarding.provider.baseUrl": {
+    zh: "Base URL（openai-compat 必填）",
+    en: "Base URL (optional unless openai-compat)",
+    ja: "Base URL（openai-compat の場合は必須）",
+  },
+  "onboarding.provider.baseUrlPlaceholderCompat": {
+    zh: "https://api.deepseek.com/v1",
+    en: "https://api.deepseek.com/v1",
+    ja: "https://api.deepseek.com/v1",
+  },
+  "onboarding.provider.baseUrlPlaceholderDefault": {
+    zh: "留空则使用厂商默认端点",
+    en: "Leave empty to use vendor default",
+    ja: "空欄でベンダー既定のエンドポイントを使用",
+  },
+  "onboarding.error.apiKeyRequired": {
+    zh: "该 Provider 需要填写 API Key。",
+    en: "API key is required for this provider.",
+    ja: "このプロバイダーでは API キーが必要です。",
+  },
+  "onboarding.error.baseUrlRequired": {
+    zh: "OpenAI-compatible Provider 必须填写 Base URL。",
+    en: "Base URL is required for OpenAI-compatible providers.",
+    ja: "OpenAI-compatible プロバイダーでは Base URL が必要です。",
+  },
+  "onboarding.error.projectNameRequired": {
+    zh: "项目名称不能为空。",
+    en: "Project name cannot be empty.",
+    ja: "プロジェクト名は空にできません。",
+  },
+  "onboarding.action.working": { zh: "处理中...", en: "Working...", ja: "処理中..." },
+  "onboarding.action.openApp": { zh: "进入应用", en: "Open App", ja: "アプリを開く" },
+
+  // Provider panel + catalog
+  "provider.vendor.anthropic": { zh: "Anthropic", en: "Anthropic", ja: "Anthropic" },
+  "provider.vendor.openai": { zh: "OpenAI", en: "OpenAI", ja: "OpenAI" },
+  "provider.vendor.gemini": { zh: "Gemini", en: "Gemini", ja: "Gemini" },
+  "provider.vendor.openaiCompat": { zh: "OpenAI-Compatible", en: "OpenAI-Compatible", ja: "OpenAI-Compatible" },
+  "provider.action.getApiKey": { zh: "获取 API Key", en: "Get API key", ja: "API キーを取得" },
+  "provider.panel.listTitle": { zh: "Providers", en: "Providers", ja: "プロバイダー" },
+  "provider.panel.noProviders": {
+    zh: "暂无 Provider。请在右侧创建一个。",
+    en: "No providers yet. Create one on the right.",
+    ja: "プロバイダーがありません。右側で作成してください。",
+  },
+  "provider.panel.active": { zh: "使用中", en: "Active", ja: "使用中" },
+  "provider.panel.title": { zh: "Provider 设置", en: "Provider Settings", ja: "プロバイダー設定" },
+  "provider.panel.subtitle": {
+    zh: "支持 Anthropic/OpenAI/Gemini 以及所有 OpenAI-compatible 端点。",
+    en: "Supports Anthropic/OpenAI/Gemini and all OpenAI-compatible endpoints.",
+    ja: "Anthropic/OpenAI/Gemini と OpenAI-compatible エンドポイントをサポートします。",
+  },
+  "provider.panel.preset": { zh: "预设", en: "Preset", ja: "プリセット" },
+  "provider.panel.custom": { zh: "自定义", en: "Custom", ja: "カスタム" },
+  "provider.panel.displayName": { zh: "显示名称", en: "Display Name", ja: "表示名" },
+  "provider.panel.vendor": { zh: "厂商类型", en: "Vendor", ja: "ベンダー" },
+  "provider.panel.defaultModel": { zh: "默认模型", en: "Default Model", ja: "デフォルトモデル" },
+  "provider.panel.baseUrl": { zh: "Base URL", en: "Base URL", ja: "Base URL" },
+  "provider.panel.optional": { zh: "可选", en: "Optional", ja: "任意" },
+  "provider.panel.apiKey": { zh: "API Key", en: "API Key", ja: "API キー" },
+  "provider.panel.apiKeyKeepExisting": {
+    zh: "留空保持现有 key",
+    en: "leave empty to keep existing key",
+    ja: "空欄で既存キーを保持",
+  },
+  "provider.panel.tags": { zh: "标签（空格分隔）", en: "Tags (space separated)", ja: "タグ（スペース区切り）" },
+  "provider.panel.error.baseUrlRequired": {
+    zh: "openai-compat Provider 必须填写 Base URL。",
+    en: "Base URL is required for openai-compat providers.",
+    ja: "openai-compat プロバイダーでは Base URL が必要です。",
+  },
+  "provider.panel.label.untitled": { zh: "未命名 Provider", en: "Untitled provider", ja: "名称未設定プロバイダー" },
+  "provider.panel.saved": { zh: "已保存。", en: "Saved.", ja: "保存しました。" },
+  "provider.panel.unknownError": { zh: "未知错误", en: "unknown error", ja: "不明なエラー" },
+  "provider.panel.status.connected": {
+    zh: "连接成功，耗时 {{ms}}ms。",
+    en: "Connected in {{ms}}ms.",
+    ja: "{{ms}}ms で接続成功。",
+  },
+  "provider.panel.status.failed": {
+    zh: "连接失败：{{error}}",
+    en: "Connection failed: {{error}}",
+    ja: "接続失敗: {{error}}",
+  },
+  "provider.panel.testing": { zh: "测试中...", en: "Testing...", ja: "テスト中..." },
+  "provider.panel.testConnection": { zh: "连接测试", en: "Test Connection", ja: "接続テスト" },
+  "provider.panel.setActive": { zh: "设为使用中", en: "Set Active", ja: "使用中に設定" },
+  "provider.panel.confirmDelete": {
+    zh: "确认删除 Provider「{{label}}」？",
+    en: "Delete provider \"{{label}}\"?",
+    ja: "プロバイダー「{{label}}」を削除しますか？",
+  },
+  "provider.panel.saving": { zh: "保存中...", en: "Saving...", ja: "保存中..." },
+  "provider.panel.saveChanges": { zh: "保存修改", en: "Save Changes", ja: "変更を保存" },
+  "provider.panel.create": { zh: "创建", en: "Create", ja: "作成" },
+
+  // Catalog descriptions
+  "provider.catalog.anthropic.description": {
+    zh: "Claude 模型，长上下文写作能力强。",
+    en: "Claude models with strong long-context writing performance.",
+    ja: "長文コンテキストに強い Claude モデル。",
+  },
+  "provider.catalog.openai.description": {
+    zh: "GPT 模型家族，API/工具链生态完善。",
+    en: "GPT models with broad API/tooling support.",
+    ja: "API とツール連携が広い GPT モデル群。",
+  },
+  "provider.catalog.gemini.description": {
+    zh: "Gemini 模型，多模态能力强，免费层友好。",
+    en: "Gemini family with strong multimodal and free-tier options.",
+    ja: "マルチモーダルに強く、無料枠も使いやすい Gemini。",
+  },
+  "provider.catalog.deepseek.description": {
+    zh: "DeepSeek 聊天/推理模型，走 OpenAI-compatible API。",
+    en: "DeepSeek chat/reasoning models via OpenAI-compatible API.",
+    ja: "OpenAI-compatible API で使える DeepSeek。",
+  },
+  "provider.catalog.moonshot.description": {
+    zh: "Kimi 长上下文模型，适合中文长文。",
+    en: "Kimi long-context models for Chinese-first workflows.",
+    ja: "中国語長文に向く Kimi 長文コンテキストモデル。",
+  },
+  "provider.catalog.qwen.description": {
+    zh: "阿里 Qwen，DashScope 提供 OpenAI-compatible 端点。",
+    en: "Alibaba Qwen models exposed with OpenAI-compatible endpoints.",
+    ja: "DashScope 経由で使える Qwen モデル。",
+  },
+  "provider.catalog.zhipu.description": {
+    zh: "Zhipu GLM 模型，OpenAI 风格接入。",
+    en: "GLM models from Zhipu with OpenAI-style integration.",
+    ja: "OpenAI 互換で利用できる Zhipu GLM。",
+  },
+  "provider.catalog.minimax.description": {
+    zh: "MiniMax 文本模型，支持 OpenAI-compatible 接口。",
+    en: "MiniMax text models with OpenAI-compatible APIs.",
+    ja: "OpenAI-compatible API で使える MiniMax。",
+  },
+  "provider.catalog.baichuan.description": {
+    zh: "Baichuan 托管 API，兼容 OpenAI 路由。",
+    en: "Baichuan hosted API with OpenAI-compatible routing.",
+    ja: "OpenAI 互換ルーティングで使える Baichuan。",
+  },
+  "provider.catalog.stepfun.description": {
+    zh: "StepFun 模型，支持 OpenAI-compatible 端点。",
+    en: "StepFun models exposed through OpenAI-compatible endpoints.",
+    ja: "OpenAI-compatible エンドポイントで使える StepFun。",
+  },
+  "provider.catalog.siliconflow.description": {
+    zh: "聚合型平台，一个 OpenAI-compatible 端点接多种开源模型。",
+    en: "Open-model aggregator behind a single OpenAI-compatible endpoint.",
+    ja: "1 つの OpenAI-compatible エンドポイントで複数 OSS モデルを利用。",
+  },
+  "provider.catalog.groq.description": {
+    zh: "低延迟推理，OpenAI-compatible API 访问。",
+    en: "Ultra-low latency inference exposed via OpenAI-compatible APIs.",
+    ja: "低遅延推論を OpenAI-compatible API で利用可能。",
+  },
+  "provider.catalog.together.description": {
+    zh: "托管开源模型目录大，OpenAI-compatible 接入。",
+    en: "Large hosted open-source catalog via OpenAI-compatible APIs.",
+    ja: "多数の OSS モデルを OpenAI-compatible API で提供。",
+  },
+  "provider.catalog.fireworks.description": {
+    zh: "高性能托管开源模型，OpenAI-compatible 方式调用。",
+    en: "Fast hosted open models with OpenAI-compatible integration.",
+    ja: "高速な OSS モデルを OpenAI-compatible で利用可能。",
+  },
+  "provider.catalog.mistral.description": {
+    zh: "Mistral 官方托管 API，支持 OpenAI-compatible 行为。",
+    en: "Mistral hosted APIs with OpenAI-compatible behavior.",
+    ja: "OpenAI-compatible 挙動の Mistral 公式 API。",
+  },
+  "provider.catalog.xai.description": {
+    zh: "xAI Grok，提供 OpenAI-compatible 端点。",
+    en: "Grok models from xAI via OpenAI-compatible endpoints.",
+    ja: "xAI の Grok を OpenAI-compatible API で利用。",
+  },
+  "provider.catalog.openrouter.description": {
+    zh: "单 key 接入多家模型的聚合网关。",
+    en: "Single API key gateway for many model vendors.",
+    ja: "1 つのキーで多数ベンダーに接続できるゲートウェイ。",
+  },
+  "provider.catalog.perplexity.description": {
+    zh: "Perplexity Sonar，检索增强回答。",
+    en: "Search-grounded Sonar models exposed via OpenAI-compatible APIs.",
+    ja: "検索連携型 Sonar モデルを OpenAI-compatible API で利用。",
+  },
+  "provider.catalog.cerebras.description": {
+    zh: "Cerebras 托管 Llama，支持 OpenAI-compatible API。",
+    en: "Cerebras-hosted Llama models with OpenAI-compatible APIs.",
+    ja: "Cerebras 提供の Llama を OpenAI-compatible API で利用。",
+  },
+  "provider.catalog.ollama.description": {
+    zh: "本地运行开源模型，无需云端依赖。",
+    en: "Run local open-source models with no cloud dependency.",
+    ja: "クラウド不要でローカル OSS モデルを実行。",
+  },
+  "provider.catalog.lmstudio.description": {
+    zh: "通过 LM Studio 本地服务，以 OpenAI-compatible 方式接入。",
+    en: "Use LM Studio local server via OpenAI-compatible APIs.",
+    ja: "LM Studio のローカルサーバーを OpenAI-compatible API で利用。",
+  },
+  "provider.catalog.vllm.description": {
+    zh: "任意 OpenAI-compatible 端点，手动填写 Base URL 与模型。",
+    en: "Use any OpenAI-compatible endpoint by filling in base URL/model manually.",
+    ja: "任意の OpenAI-compatible エンドポイントを手動設定で利用。",
+  },
+
+  "error.generic": { zh: "出错了", en: "Something went wrong", ja: "エラーが発生しました" },
+  "error.boundary.title": {
+    zh: "此区域无法渲染",
+    en: "This area could not render",
+    ja: "この領域を表示できません",
+  },
+  "error.boundary.copyDiag": {
+    zh: "复制诊断摘要",
+    en: "Copy diagnostic snapshot",
+    ja: "診断スナップショットをコピー",
+  },
+};
+
+/**
+ * Translate `key` using UI `lang`. Falls back to zh, then raw key.
+ * Replaces `{{var}}` placeholders when `params` provided.
+ */
+export function t(
+  key: string,
+  lang: Lang,
+  params?: Record<string, string | number>,
+): string {
+  const entry = i18nResources[key];
+  let value: string;
+  if (!entry) {
+    value = key;
+  } else {
+    value = entry[lang] ?? entry.zh ?? key;
+  }
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      value = value.replace(new RegExp(`\\{\\{\\s*${k}\\s*\\}\\}`, "g"), String(v));
+    }
+  }
+  return value;
+}
+
+/** List known keys (for verify:i18n). */
+export function listI18nKeys(): string[] {
+  return Object.keys(i18nResources);
+}

@@ -1,0 +1,88 @@
+name: 🐛 Bug 报告 / Bug report
+description: 应用行为不符合预期 / Something doesn't work as expected
+title: "[Bug] "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢报告 Bug。请尽量提供可复现的最小步骤，模糊的描述会拖慢修复速度。
+
+  - type: input
+    id: version
+    attributes:
+      label: InkForge 版本 / Version
+      description: 「关于 InkForge」中可见，或 `git rev-parse HEAD`
+      placeholder: "0.1.0-beta.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: 操作系统 / OS
+      options:
+        - Windows 11
+        - Windows 10
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux (AppImage)
+        - Linux (deb)
+        - 开发模式 / dev mode
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤 / Steps to reproduce
+      description: 越短越好；最好能从一个干净工作目录开始
+      placeholder: |
+        1. 打开 InkForge
+        2. 新建项目「测试」
+        3. 在第一章敲 200 字
+        4. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 预期行为 / Expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为 / Actual
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: 诊断摘要 / Diagnostics
+      description: 「开发者模式 → 复制诊断摘要」（API Key 已自动脱敏）。可选但强烈推荐。
+      render: text
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志 / Logs
+      description: |
+        位于 `<userData>/logs/main.log` 和 `renderer.log`。
+        - Windows: `%APPDATA%\InkForge\logs\`
+        - macOS: `~/Library/Logs/InkForge/`
+        - Linux: `~/.config/InkForge/logs/`
+      render: text
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: 自检 / Self-check
+      options:
+        - label: 我已搜索现有 Issue，确认没有重复
+          required: true
+        - label: 我已知道安全漏洞应走 SECURITY.md 而不是公开 Issue
+          required: true

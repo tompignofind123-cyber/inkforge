@@ -1,0 +1,46 @@
+import type { BrowserWindow } from "electron";
+import { registerCharacterHandlers } from "./character";
+import { registerChapterHandlers } from "./chapter";
+import { registerDailyHandlers } from "./daily";
+import { registerDailySummaryHandlers } from "./daily-summary";
+import { registerDiagHandlers } from "./diag";
+import { registerFeedbackHandlers } from "./feedback";
+import { registerFsHandlers } from "./fs";
+import { registerLLMHandlers } from "./llm";
+import { registerMarketHandlers } from "./market";
+import { registerOutlineHandlers } from "./outline";
+import { registerProjectHandlers } from "./project";
+import { registerProviderHandlers } from "./provider";
+import { registerProviderKeyHandlers } from "./provider-key";
+import { registerResearchHandlers } from "./research";
+import { registerReviewHandlers } from "./review";
+import { registerSettingsHandlers } from "./settings";
+import { registerSkillHandlers } from "./skill";
+import { registerTavernHandlers } from "./tavern";
+import { registerTerminalHandlers } from "./terminal";
+import { registerUpdateHandlers } from "./update";
+import { registerWorldHandlers } from "./world";
+
+export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void {
+  registerProjectHandlers();
+  registerChapterHandlers();
+  registerProviderHandlers();
+  registerLLMHandlers(getWindow);
+  registerFeedbackHandlers();
+  registerOutlineHandlers();
+  registerDailyHandlers();
+  registerSettingsHandlers();
+  registerSkillHandlers(getWindow);
+  registerCharacterHandlers();
+  registerTavernHandlers(getWindow);
+  registerWorldHandlers();
+  registerResearchHandlers();
+  registerReviewHandlers(getWindow);
+  registerDailySummaryHandlers(getWindow);
+  registerProviderKeyHandlers();
+  registerFsHandlers(getWindow);
+  registerTerminalHandlers(getWindow);
+  registerDiagHandlers();
+  registerUpdateHandlers(process.env.INKFORGE_UPDATE_FEED);
+  registerMarketHandlers();
+}

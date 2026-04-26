@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 220" width="720" height="220" role="img" aria-label="InkForge — 墨炉">
+  <title>InkForge — 墨炉</title>
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1d2e"/>
+      <stop offset="100%" stop-color="#0d0f1c"/>
+    </linearGradient>
+    <linearGradient id="forge2" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ffb766"/>
+      <stop offset="55%" stop-color="#ff7e3d"/>
+      <stop offset="100%" stop-color="#c93b1f"/>
+    </linearGradient>
+    <linearGradient id="nib2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5f0e1"/>
+      <stop offset="100%" stop-color="#a09687"/>
+    </linearGradient>
+    <radialGradient id="glow2" cx="0.5" cy="0.7" r="0.55">
+      <stop offset="0%" stop-color="#ffb766" stop-opacity="0.55"/>
+      <stop offset="60%" stop-color="#ff7e3d" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#ff7e3d" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5f0e1"/>
+      <stop offset="100%" stop-color="#c8c0ad"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Mark on the left -->
+  <g transform="translate(0 -8)">
+    <rect x="14" y="14" width="200" height="200" rx="46" fill="url(#bg2)"/>
+    <rect x="14" y="14" width="200" height="200" rx="46" fill="none" stroke="#2a2f48" stroke-width="2"/>
+
+    <ellipse cx="114" cy="156" rx="65" ry="30" fill="url(#glow2)"/>
+
+    <!-- furnace arch -->
+    <path d="M44 178
+             L44 138
+             Q44 90 114 90
+             Q184 90 184 138
+             L184 178 Z"
+          fill="none" stroke="#3b4264" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M64 174
+             L64 142
+             Q64 110 114 110
+             Q164 110 164 142
+             L164 174 Z"
+          fill="url(#forge2)" opacity="0.92"/>
+    <rect x="32" y="178" width="164" height="12" rx="3" fill="#3b4264"/>
+    <rect x="24" y="190" width="180" height="8" rx="3" fill="#2a2f48"/>
+
+    <!-- quill nib -->
+    <g transform="translate(114 108)">
+      <path d="M0 -76 L18 -26 L13 0 L-13 0 L-18 -26 Z"
+            fill="url(#nib2)" stroke="#1a1d2e" stroke-width="2" stroke-linejoin="round"/>
+      <line x1="0" y1="-66" x2="0" y2="-4" stroke="#1a1d2e" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="0" cy="-20" r="3" fill="#1a1d2e"/>
+      <path d="M0 6 Q-4 14 0 22 Q4 14 0 6 Z" fill="#1a1d2e"/>
+    </g>
+
+    <circle cx="80" cy="120" r="1.7" fill="#ffd9a8" opacity="0.9"/>
+    <circle cx="152" cy="128" r="1.4" fill="#ffd9a8" opacity="0.8"/>
+    <circle cx="132" cy="112" r="1.2" fill="#ffd9a8" opacity="0.7"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g transform="translate(248 0)">
+    <text x="0" y="120"
+          font-family="ui-serif, Georgia, 'Iowan Old Style', 'Apple Garamond', 'Source Serif Pro', serif"
+          font-weight="700"
+          font-size="92"
+          letter-spacing="1.5"
+          fill="url(#word)">InkForge</text>
+    <text x="4" y="160"
+          font-family="ui-sans-serif, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif"
+          font-weight="500"
+          font-size="26"
+          letter-spacing="6"
+          fill="#8a9bb8">墨 炉</text>
+    <text x="4" y="194"
+          font-family="ui-sans-serif, system-ui, sans-serif"
+          font-weight="400"
+          font-size="16"
+          letter-spacing="1.2"
+          fill="#5d6789">A local-first AI writing forge for novelists.</text>
+  </g>
+</svg>

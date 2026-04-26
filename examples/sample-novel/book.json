@@ -1,0 +1,20 @@
+{
+  "name": "《山河入梦》示例",
+  "dailyGoal": 1000,
+  "description": "InkForge 自带的示例项目：一位年轻侠女在师门压力与江湖动荡之间做出选择。",
+  "author": "InkForge sample",
+  "license": "MIT",
+  "inkforge": {
+    "format": "book.v1",
+    "source": "inkforge-desktop/examples/sample-novel",
+    "exportedAt": "2026-04-21T00:00:00Z"
+  },
+  "chapters": [
+    {
+      "file": "chapters/01-楔子.md",
+      "title": "楔子 · 起风",
+      "order": 0,
+      "status": "draft"
+    }
+  ]
+}

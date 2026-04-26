@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: "Create as draft release"
+        type: boolean
+        default: true
+
+jobs:
+  release:
+    name: ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: dist:win
+            label: win
+          - os: macos-latest
+            target: dist:mac
+            label: mac
+          - os: ubuntu-latest
+            target: dist:linux
+            label: linux-x64
+          - os: ubuntu-latest
+            target: dist:linux:arm64
+            label: linux-arm64
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck + verify
+        run: |
+          pnpm typecheck
+          pnpm --filter @inkforge/desktop run verify:all
+
+      - name: Generate icons
+        run: pnpm icons
+
+      - name: Build & package
+        run: pnpm --filter @inkforge/desktop run ${{ matrix.target }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional signing secrets (leave unset for unsigned builds):
+          # Windows : CSC_LINK / CSC_KEY_PASSWORD
+          # macOS   : CSC_LINK / CSC_KEY_PASSWORD / APPLE_ID /
+          #           APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: inkforge-${{ matrix.label }}
+          path: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
+            apps/desktop/release/*.tar.gz
+            apps/desktop/release/latest*.yml
+            apps/desktop/release/beta*.yml
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Create / update GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: ${{ github.event.inputs.draft != 'false' }}
+          generate_release_notes: true
+          files: |
+            apps/desktop/release/*.exe
+            apps/desktop/release/*.dmg
+            apps/desktop/release/*.zip
+            apps/desktop/release/*.AppImage
+            apps/desktop/release/*.deb
+            apps/desktop/release/*.tar.gz
+            apps/desktop/release/latest*.yml
+            apps/desktop/release/beta*.yml

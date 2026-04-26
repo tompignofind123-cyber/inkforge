@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Workspace caches
+.turbo/
+
+# Build artifacts
+**/dist/
+**/out/
+**/*.tsbuildinfo
+
+# Electron runtime data
+apps/desktop/.electron/
+
+# Electron-builder output (installers go to GitHub Releases, not git)
+apps/desktop/release/
+
+# Local env / secrets
+.env
+.env.*
+!.env.example
+
+# Editor / IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.example.json
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temp / scratch
+.tmp/
+*.bak

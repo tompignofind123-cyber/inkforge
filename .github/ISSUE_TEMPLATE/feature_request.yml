@@ -1,0 +1,55 @@
+name: ✨ 功能建议 / Feature request
+description: 想加新能力，或优化现有体验 / Suggest a new capability or UX improvement
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        在写代码之前，先讨论方向能避免 PR 被打回。**复杂改动建议先开 Discussion**。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你想解决什么问题？/ What problem does this solve?
+      description: 从用户场景出发，不是从实现出发。"我希望 ..." 比 "应该加一个 button" 有用得多。
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案 / Proposed solution
+      description: 哪怕只是一句话也行；有 mock / 流程图就更好
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 考虑过的替代方案 / Alternatives considered
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: 影响范围 / Scope
+      multiple: true
+      options:
+        - 编辑器 / Editor
+        - Skill 引擎 / Skill engine
+        - 酒馆 / Tavern
+        - 人物 / 世界观
+        - 资料检索 / Research
+        - 全文审查 / Review
+        - Provider / LLM
+        - CLI 终端
+        - 数据持久化 / Storage
+        - 打包发布 / Packaging
+        - 文档 / Docs
+        - 其他 / Other
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: 自检 / Self-check
+      options:
+        - label: 我已搜索现有 Issue / Discussion，确认没有重复
+          required: true

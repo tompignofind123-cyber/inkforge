@@ -1,0 +1,173 @@
+import type { DB } from "../db";
+import type { SyncMode, TavernCardRecord } from "@inkforge/shared";
+
+type TavernCardRow = {
+  id: string;
+  name: string;
+  persona: string;
+  avatar_path: string | null;
+  provider_id: string;
+  model: string;
+  temperature: number;
+  linked_novel_character_id: string | null;
+  sync_mode: string;
+  created_at: string;
+  updated_at: string;
+};
+
+function normalizeSyncMode(value: string): SyncMode {
+  if (value === "two-way" || value === "snapshot" || value === "detached") return value;
+  return "two-way";
+}
+
+function rowToRecord(row: TavernCardRow): TavernCardRecord {
+  return {
+    id: row.id,
+    name: row.name,
+    persona: row.persona,
+    avatarPath: row.avatar_path,
+    providerId: row.provider_id,
+    model: row.model,
+    temperature: row.temperature,
+    linkedNovelCharacterId: row.linked_novel_character_id,
+    syncMode: normalizeSyncMode(row.sync_mode),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export interface CreateTavernCardRow {
+  id: string;
+  name: string;
+  persona: string;
+  avatarPath?: string | null;
+  providerId: string;
+  model: string;
+  temperature?: number;
+  linkedNovelCharacterId?: string | null;
+  syncMode?: SyncMode;
+}
+
+export function insertTavernCard(db: DB, input: CreateTavernCardRow): TavernCardRecord {
+  const now = new Date().toISOString();
+  const row: TavernCardRow = {
+    id: input.id,
+    name: input.name,
+    persona: input.persona,
+    avatar_path: input.avatarPath ?? null,
+    provider_id: input.providerId,
+    model: input.model,
+    temperature: input.temperature ?? 0.7,
+    linked_novel_character_id: input.linkedNovelCharacterId ?? null,
+    sync_mode: input.syncMode ?? "two-way",
+    created_at: now,
+    updated_at: now,
+  };
+  db.prepare(
+    `INSERT INTO tavern_cards
+       (id, name, persona, avatar_path, provider_id, model, temperature,
+        linked_novel_character_id, sync_mode, created_at, updated_at)
+     VALUES (@id, @name, @persona, @avatar_path, @provider_id, @model, @temperature,
+             @linked_novel_character_id, @sync_mode, @created_at, @updated_at)`,
+  ).run(row);
+  return rowToRecord(row);
+}
+
+export interface UpdateTavernCardRow {
+  id: string;
+  name?: string;
+  persona?: string;
+  avatarPath?: string | null;
+  providerId?: string;
+  model?: string;
+  temperature?: number;
+  linkedNovelCharacterId?: string | null;
+  syncMode?: SyncMode;
+}
+
+export function updateTavernCard(db: DB, input: UpdateTavernCardRow): TavernCardRecord {
+  const existing = db
+    .prepare(`SELECT * FROM tavern_cards WHERE id = ?`)
+    .get(input.id) as TavernCardRow | undefined;
+  if (!existing) throw new Error(`TavernCard not found: ${input.id}`);
+  const next: TavernCardRow = {
+    ...existing,
+    name: input.name ?? existing.name,
+    persona: input.persona ?? existing.persona,
+    avatar_path: input.avatarPath === undefined ? existing.avatar_path : input.avatarPath,
+    provider_id: input.providerId ?? existing.provider_id,
+    model: input.model ?? existing.model,
+    temperature: input.temperature ?? existing.temperature,
+    linked_novel_character_id:
+      input.linkedNovelCharacterId === undefined
+        ? existing.linked_novel_character_id
+        : input.linkedNovelCharacterId,
+    sync_mode: input.syncMode ?? existing.sync_mode,
+    updated_at: new Date().toISOString(),
+  };
+  db.prepare(
+    `UPDATE tavern_cards SET
+       name = @name, persona = @persona, avatar_path = @avatar_path,
+       provider_id = @provider_id, model = @model, temperature = @temperature,
+       linked_novel_character_id = @linked_novel_character_id,
+       sync_mode = @sync_mode, updated_at = @updated_at
+     WHERE id = @id`,
+  ).run(next);
+  return rowToRecord(next);
+}
+
+export function getTavernCardById(db: DB, id: string): TavernCardRecord | null {
+  const row = db
+    .prepare(`SELECT * FROM tavern_cards WHERE id = ?`)
+    .get(id) as TavernCardRow | undefined;
+  return row ? rowToRecord(row) : null;
+}
+
+export function getTavernCardByLinkedNovelCharacter(
+  db: DB,
+  novelCharacterId: string,
+): TavernCardRecord | null {
+  const row = db
+    .prepare(`SELECT * FROM tavern_cards WHERE linked_novel_character_id = ?`)
+    .get(novelCharacterId) as TavernCardRow | undefined;
+  return row ? rowToRecord(row) : null;
+}
+
+export interface ListTavernCardsOptions {
+  projectId?: string;
+}
+
+export function listTavernCards(db: DB, options: ListTavernCardsOptions = {}): TavernCardRecord[] {
+  // Cards without a project binding are global; cards linked to a character inherit that character's project.
+  // When projectId is given, return: cards linked to a novel-character in that project PLUS unbound cards.
+  if (options.projectId) {
+    const rows = db
+      .prepare(
+        `SELECT tc.* FROM tavern_cards tc
+         LEFT JOIN characters c ON c.id = tc.linked_novel_character_id
+         WHERE tc.linked_novel_character_id IS NULL OR c.project_id = ?
+         ORDER BY tc.updated_at DESC`,
+      )
+      .all(options.projectId) as TavernCardRow[];
+    return rows.map(rowToRecord);
+  }
+  const rows = db
+    .prepare(`SELECT * FROM tavern_cards ORDER BY updated_at DESC`)
+    .all() as TavernCardRow[];
+  return rows.map(rowToRecord);
+}
+
+export function deleteTavernCard(db: DB, id: string): void {
+  const tx = db.transaction((cardId: string) => {
+    db.prepare(`UPDATE characters SET linked_tavern_card_id = NULL WHERE linked_tavern_card_id = ?`)
+      .run(cardId);
+    db.prepare(`DELETE FROM tavern_cards WHERE id = ?`).run(cardId);
+  });
+  tx(id);
+}
+
+export function clearTavernCardLink(db: DB, cardId: string): void {
+  db.prepare(
+    `UPDATE tavern_cards SET linked_novel_character_id = NULL, updated_at = ? WHERE id = ?`,
+  ).run(new Date().toISOString(), cardId);
+}

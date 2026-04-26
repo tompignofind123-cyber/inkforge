@@ -1,0 +1,79 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root,
+html.theme-dark {
+  color-scheme: dark;
+  --ink-50: 248 250 252;
+  --ink-100: 226 232 240;
+  --ink-200: 203 213 225;
+  --ink-300: 148 163 184;
+  --ink-400: 100 116 139;
+  --ink-500: 71 85 105;
+  --ink-600: 51 65 85;
+  --ink-700: 30 41 59;
+  --ink-800: 15 23 42;
+  --ink-900: 11 18 32;
+}
+
+html.theme-light {
+  color-scheme: light;
+  --ink-50: 15 23 42;
+  --ink-100: 30 41 59;
+  --ink-200: 51 65 85;
+  --ink-300: 71 85 105;
+  --ink-400: 100 116 139;
+  --ink-500: 148 163 184;
+  --ink-600: 203 213 225;
+  --ink-700: 226 232 240;
+  --ink-800: 241 245 249;
+  --ink-900: 248 250 252;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui,
+    -apple-system, sans-serif;
+  background-color: rgb(var(--ink-900));
+  color: rgb(var(--ink-100));
+}
+
+.ProseMirror {
+  outline: none !important;
+  min-height: 100%;
+}
+
+.ProseMirror p {
+  margin: 0 0 1em 0;
+}
+
+.ProseMirror h1,
+.ProseMirror h2,
+.ProseMirror h3 {
+  margin-top: 1.2em;
+  margin-bottom: 0.4em;
+  font-weight: 600;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.35);
+  border-radius: 3px;
+}
+
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: not-allowed;
+}
+
+[role="dialog"] {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+}

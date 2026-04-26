@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="InkForge logo">
+  <title>InkForge</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1d2e"/>
+      <stop offset="100%" stop-color="#0d0f1c"/>
+    </linearGradient>
+    <linearGradient id="forge" x1="0.5" y1="0" x2="0.5" y2="1">
+      <stop offset="0%" stop-color="#ffb766"/>
+      <stop offset="55%" stop-color="#ff7e3d"/>
+      <stop offset="100%" stop-color="#c93b1f"/>
+    </linearGradient>
+    <linearGradient id="nib" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f5f0e1"/>
+      <stop offset="100%" stop-color="#a09687"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.7" r="0.55">
+      <stop offset="0%" stop-color="#ffb766" stop-opacity="0.55"/>
+      <stop offset="60%" stop-color="#ff7e3d" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#ff7e3d" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Rounded square plate -->
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="url(#bg)"/>
+  <rect x="8" y="8" width="240" height="240" rx="56" fill="none" stroke="#2a2f48" stroke-width="2"/>
+
+  <!-- Forge interior glow -->
+  <ellipse cx="128" cy="178" rx="78" ry="36" fill="url(#glow)"/>
+
+  <!-- Furnace arch (forge) -->
+  <path d="M52 200
+           L52 152
+           Q52 96 128 96
+           Q204 96 204 152
+           L204 200 Z"
+        fill="none" stroke="#3b4264" stroke-width="6" stroke-linejoin="round"/>
+
+  <!-- Inner mouth: ember -->
+  <path d="M76 196
+           L76 156
+           Q76 120 128 120
+           Q180 120 180 156
+           L180 196 Z"
+        fill="url(#forge)" opacity="0.92"/>
+
+  <!-- Anvil base -->
+  <rect x="40" y="200" width="176" height="14" rx="4" fill="#3b4264"/>
+  <rect x="32" y="214" width="192" height="10" rx="3" fill="#2a2f48"/>
+
+  <!-- Quill nib rising from the forge -->
+  <g transform="translate(128 116)">
+    <!-- nib body -->
+    <path d="M0 -84
+             L20 -28
+             L14 0
+             L-14 0
+             L-20 -28 Z"
+          fill="url(#nib)" stroke="#1a1d2e" stroke-width="2.5" stroke-linejoin="round"/>
+    <!-- center slit -->
+    <line x1="0" y1="-72" x2="0" y2="-4" stroke="#1a1d2e" stroke-width="2.5" stroke-linecap="round"/>
+    <!-- vent hole -->
+    <circle cx="0" cy="-22" r="3.6" fill="#1a1d2e"/>
+    <!-- ink drop falling toward fire -->
+    <path d="M0 6 Q-5 16 0 24 Q5 16 0 6 Z" fill="#1a1d2e"/>
+  </g>
+
+  <!-- Spark flecks -->
+  <circle cx="92" cy="138" r="2" fill="#ffd9a8" opacity="0.9"/>
+  <circle cx="170" cy="146" r="1.6" fill="#ffd9a8" opacity="0.8"/>
+  <circle cx="148" cy="128" r="1.4" fill="#ffd9a8" opacity="0.7"/>
+  <circle cx="108" cy="160" r="1.6" fill="#ffd9a8" opacity="0.7"/>
+</svg>

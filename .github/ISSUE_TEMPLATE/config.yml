@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussions
+    url: ../../discussions
+    about: 不确定算 Bug 还是 Feature，先来这里聊
+  - name: 🔒 Security advisory
+    url: ../../security/advisories/new
+    about: 安全漏洞请走 Private vulnerability reporting，不要公开 Issue
+  - name: 📖 Skill 作者指南
+    url: ../../blob/main/docs/skill-authoring.md
+    about: 写自己的 Skill 之前先读这个

@@ -1,0 +1,53 @@
+name: 🧩 新 Skill / 维度提案 / Skill or Review-dimension proposal
+description: 想贡献一条 Skill 预设或全文审查维度 / Propose a new Skill preset or review dimension
+title: "[Skill] "
+labels: ["skill", "enhancement"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Skill 名称 / Name
+      placeholder: "对话润色 · 古风"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: trigger
+    attributes:
+      label: 触发方式 / Trigger
+      options:
+        - selection（选段触发）
+        - every-n-chars（每 N 字触发）
+        - on-save（保存时触发）
+        - on-chapter-end（章节末触发）
+        - manual（手动）
+    validations:
+      required: true
+
+  - type: textarea
+    id: prompt
+    attributes:
+      label: Prompt 草稿 / Prompt draft
+      description: 含 `{{selection}}` `{{chapter.*}}` 等模板变量；尽量给出 system + user 两段
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: 输入 → 输出 示例 / Input → Output example
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: 备注（适用模型 / 已知边界 / 风格偏好等）
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      options:
+        - label: 我已阅读 docs/skill-authoring.md
+          required: true
+        - label: 引用素材已注明来源并兼容 MIT
+          required: true
