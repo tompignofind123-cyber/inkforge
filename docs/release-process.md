@@ -32,14 +32,14 @@ git push origin main v0.1.0-beta.0
 
 - 在 windows / macos / ubuntu 三个 runner 上各自跑 typecheck + verify:all + `electron-builder`
 - 生成 `apps/desktop/release/` 下的产物（.exe / .dmg / .AppImage / .deb + latest*.yml）
-- 创建 draft GitHub Release 并上传产物
+- 创建正式 GitHub Release 并上传产物；这样 Releases 页面会直接显示可下载安装包
 
 ## Step 4. 人工检查 + 发布
 
 - 打开 GitHub Releases，确认三平台产物齐全
 - 下载 Windows / Mac 各至少一个产物，跑一遍欢迎向导 + 写 200 字 + 生成日报
 - 填写 Release Notes（`docs/release-notes.md` 模板）
-- 点击 "Publish release"
+- 如果是手动触发且选择了 draft，先点击 "Publish release"；tag 推送则会直接发布
 
 ## Step 5. 发布后观察
 
