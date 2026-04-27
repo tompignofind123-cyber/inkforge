@@ -20,6 +20,9 @@ on:
 permissions:
   contents: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   verify:
     name: Verify
@@ -70,9 +73,7 @@ jobs:
         run: pnpm icons
 
       - name: Build & package
-        run: pnpm --filter @inkforge/desktop run dist:win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm --filter @inkforge/desktop run dist:ci:win
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
@@ -109,9 +110,7 @@ jobs:
         run: pnpm icons
 
       - name: Build & package
-        run: pnpm --filter @inkforge/desktop run dist:mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm --filter @inkforge/desktop run dist:ci:mac
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
@@ -149,9 +148,7 @@ jobs:
         run: pnpm icons
 
       - name: Build & package
-        run: pnpm --filter @inkforge/desktop run dist:linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm --filter @inkforge/desktop run dist:ci:linux
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
