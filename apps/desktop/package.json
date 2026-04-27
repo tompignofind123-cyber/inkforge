@@ -20,14 +20,15 @@
     "bench:storage": "node scripts/_run-in-electron.cjs scripts/bench-storage.cjs",
     "dist": "electron-vite build && electron-builder",
     "dist:dir": "electron-vite build && electron-builder --dir",
-    "dist:win": "electron-vite build && electron-builder --win nsis --x64 --arm64",
-    "dist:win:x64": "electron-vite build && electron-builder --win nsis --x64",
+    "dist:win": "electron-vite build && electron-builder --win nsis portable --x64",
+    "dist:win:x64": "electron-vite build && electron-builder --win nsis portable --x64",
     "dist:win:arm64": "electron-vite build && electron-builder --win nsis --arm64",
-    "dist:mac": "electron-vite build && electron-builder --mac dmg --x64 --arm64",
-    "dist:linux": "electron-vite build && electron-builder --linux AppImage deb --x64",
+    "dist:mac": "electron-vite build && electron-builder --mac dmg zip --x64",
+    "dist:mac:arm64": "electron-vite build && electron-builder --mac dmg zip --arm64",
+    "dist:linux": "electron-vite build && electron-builder --linux AppImage deb tar.gz --x64",
     "dist:linux:arm64": "electron-vite build && electron-builder --linux AppImage deb --arm64",
     "dist:ci:win": "electron-vite build && electron-builder --win nsis portable --x64 --publish never",
-    "dist:ci:mac": "electron-vite build && electron-builder --mac dmg zip --publish never",
+    "dist:ci:mac": "electron-vite build && electron-builder --mac dmg zip --x64 --publish never",
     "dist:ci:linux": "electron-vite build && electron-builder --linux AppImage deb tar.gz --x64 --publish never",
     "dist:all": "electron-vite build && electron-builder -mwl",
     "e2e": "electron-vite build && playwright test",
@@ -75,7 +76,7 @@
   "build": {
     "appId": "app.inkforge.desktop",
     "productName": "InkForge",
-    "copyright": "Copyright © 2026 InkForge contributors",
+    "copyright": "Copyright (c) 2026 InkForge contributors",
     "files": [
       "out/**",
       "package.json",
@@ -99,8 +100,8 @@
     ],
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64", "arm64"] },
-        { "target": "portable", "arch": ["x64"] }
+        "nsis",
+        "portable"
       ],
       "icon": "build/icon.ico",
       "signAndEditExecutable": false
@@ -122,8 +123,8 @@
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] },
-        { "target": "zip", "arch": ["x64", "arm64"] }
+        "dmg",
+        "zip"
       ],
       "category": "public.app-category.productivity",
       "hardenedRuntime": true,
@@ -136,22 +137,34 @@
       "title": "InkForge ${version}",
       "icon": "build/icon.png",
       "iconSize": 96,
-      "window": { "width": 540, "height": 380 },
+      "window": {
+        "width": 540,
+        "height": 380
+      },
       "contents": [
-        { "x": 140, "y": 200, "type": "file" },
-        { "x": 400, "y": 200, "type": "link", "path": "/Applications" }
+        {
+          "x": 140,
+          "y": 200,
+          "type": "file"
+        },
+        {
+          "x": 400,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
       ]
     },
     "linux": {
       "target": [
-        { "target": "AppImage", "arch": ["x64", "arm64"] },
-        { "target": "deb", "arch": ["x64", "arm64"] },
-        { "target": "tar.gz", "arch": ["x64"] }
+        "AppImage",
+        "deb",
+        "tar.gz"
       ],
       "category": "Office",
       "icon": "build/icon.png",
       "synopsis": "Local-first AI writing forge for novelists",
-      "description": "InkForge unifies a TipTap-based novel editor with multi-model AI assistance, programmable Skills, and a multi-agent Tavern stage. All data stays local — no telemetry, no cloud sync.",
+      "description": "InkForge unifies a TipTap-based novel editor with multi-model AI assistance, programmable Skills, and a multi-agent Tavern stage. All data stays local - no telemetry, no cloud sync.",
       "maintainer": "InkForge contributors <noreply@inkforge.app>",
       "vendor": "InkForge",
       "artifactName": "InkForge-${version}-${arch}.${ext}"

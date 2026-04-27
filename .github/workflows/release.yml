@@ -20,22 +20,19 @@ on:
 permissions:
   contents: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.0.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -55,13 +52,13 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 75
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.0.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -69,11 +66,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate icons
-        run: pnpm icons
-
       - name: Build & package
         run: pnpm --filter @inkforge/desktop run dist:ci:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          DEBUG: electron-builder
+
+      - name: Show release files
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path "apps/desktop/release") {
+            Get-ChildItem -LiteralPath "apps/desktop/release" -Recurse | Select-Object FullName,Length
+          } else {
+            Write-Host "apps/desktop/release does not exist"
+          }
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
@@ -89,16 +96,16 @@ jobs:
   build-mac:
     name: Build macOS
     needs: verify
-    runs-on: macos-latest
+    runs-on: macos-13
     timeout-minutes: 75
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.0.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -106,11 +113,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate icons
-        run: pnpm icons
-
       - name: Build & package
         run: pnpm --filter @inkforge/desktop run dist:ci:mac
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          DEBUG: electron-builder
+
+      - name: Show release files
+        if: always()
+        shell: bash
+        run: |
+          if [ -d "apps/desktop/release" ]; then
+            ls -lahR apps/desktop/release
+          else
+            echo "apps/desktop/release does not exist"
+          fi
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
@@ -130,13 +147,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 9.0.0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
@@ -144,11 +161,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate icons
-        run: pnpm icons
-
       - name: Build & package
         run: pnpm --filter @inkforge/desktop run dist:ci:linux
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          DEBUG: electron-builder
+
+      - name: Show release files
+        if: always()
+        shell: bash
+        run: |
+          if [ -d "apps/desktop/release" ]; then
+            ls -lahR apps/desktop/release
+          else
+            echo "apps/desktop/release does not exist"
+          fi
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
