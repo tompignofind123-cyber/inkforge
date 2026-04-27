@@ -56,6 +56,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Restore Electron binary
+        run: pnpm --filter @inkforge/desktop rebuild electron
+
+      - name: Rebuild native deps
+        run: pnpm --filter @inkforge/desktop exec electron-builder install-app-deps
+
       - name: Typecheck + verify
         run: |
           pnpm typecheck

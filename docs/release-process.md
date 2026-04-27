@@ -6,7 +6,9 @@
 ## Step 1. 本地预检
 
 ```bash
-pnpm install --frozen-lockfile
+pnpm install --frozen-lockfile --ignore-scripts
+pnpm --filter @inkforge/desktop rebuild electron
+pnpm --filter @inkforge/desktop exec electron-builder install-app-deps
 pnpm typecheck                                              # 17/17
 pnpm --filter @inkforge/desktop run verify:all              # 60 断言
 pnpm --filter @inkforge/desktop run build                   # Electron Vite

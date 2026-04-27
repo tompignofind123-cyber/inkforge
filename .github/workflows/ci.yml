@@ -19,5 +19,7 @@ jobs:
           node-version: 24
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      - run: pnpm --filter @inkforge/desktop rebuild electron
+      - run: pnpm --filter @inkforge/desktop exec electron-builder install-app-deps
       - run: pnpm typecheck
       - run: pnpm --filter @inkforge/desktop run verify:all
