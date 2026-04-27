@@ -102,5 +102,5 @@ export function quitAndInstall(): void {
 }
 
 export async function openDownloadPage(): Promise<void> {
-  await shell.openExternal("https://github.com/anthropics/inkforge/releases/latest");
+  await shell.openExternal("https://github.com/tompignofind123-cyber/inkforge/releases/latest");
 }

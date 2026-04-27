@@ -121,7 +121,7 @@ export function buildAppMenu(): void {
         {
           label: "访问 GitHub",
           click: () => {
-            void shell.openExternal("https://github.com/anthropics/inkforge");
+            void shell.openExternal("https://github.com/tompignofind123-cyber/inkforge");
           },
         },
         {

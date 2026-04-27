@@ -7,8 +7,8 @@
 </p>
 
 <p>
-  <a href="https://github.com/your-org/inkforge/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/your-org/inkforge/ci.yml?branch=main&label=CI&logo=github" alt="CI"></a>
-  <a href="https://github.com/your-org/inkforge/releases"><img src="https://img.shields.io/github/v/release/your-org/inkforge?include_prereleases&color=ff7e3d" alt="Release"></a>
+  <a href="https://github.com/tompignofind123-cyber/inkforge/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tompignofind123-cyber/inkforge/ci.yml?branch=main&label=CI&logo=github" alt="CI"></a>
+  <a href="https://github.com/tompignofind123-cyber/inkforge/releases"><img src="https://img.shields.io/github/v/release/tompignofind123-cyber/inkforge?include_prereleases&color=ff7e3d" alt="Release"></a>
   <img src="https://img.shields.io/badge/typecheck-17%2F17-3aa676" alt="typecheck">
   <img src="https://img.shields.io/badge/verify-92%20assertions-3aa676" alt="verify">
   <img src="https://img.shields.io/badge/platform-Win%20%7C%20macOS%20%7C%20Linux-8a9bb8" alt="platforms">
@@ -95,7 +95,7 @@
 
 ## 📦 下载安装
 
-到 [Releases](https://github.com/your-org/inkforge/releases) 下载对应平台的安装包：
+到 [Releases](https://github.com/tompignofind123-cyber/inkforge/releases) 下载对应平台的安装包：
 
 | 平台 | 文件 | 备注 |
 |---|---|---|
@@ -112,7 +112,7 @@
 前置：**Node 20+**, **pnpm 9+**, 系统具备 C++ 工具链（用于 better-sqlite3 / node-pty 原生模块）。
 
 ```bash
-git clone https://github.com/your-org/inkforge.git
+git clone https://github.com/tompignofind123-cyber/inkforge.git
 cd inkforge
 
 pnpm install
