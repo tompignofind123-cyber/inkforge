@@ -3,9 +3,9 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
-      - "*.*.*"
-      - "*.*.*-*"
+      - "*"
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -13,7 +13,7 @@ on:
         type: string
         required: true
       draft:
-        description: "Create as draft release"
+        description: "Create as draft release (workflow_dispatch only)"
         type: boolean
         default: true
 
@@ -46,23 +46,10 @@ jobs:
       - name: Verify desktop checks
         run: pnpm --filter @inkforge/desktop run verify:all
 
-  build:
-    name: Build ${{ matrix.label }}
+  build-win:
+    name: Build Windows
     needs: verify
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            target: dist:win
-            label: win
-          - os: macos-latest
-            target: dist:mac
-            label: mac
-          - os: ubuntu-latest
-            target: dist:linux
-            label: linux
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
@@ -83,34 +70,106 @@ jobs:
         run: pnpm icons
 
       - name: Build & package
-        run: pnpm --filter @inkforge/desktop run ${{ matrix.target }}
+        run: pnpm --filter @inkforge/desktop run dist:win
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Optional signing secrets (leave unset for unsigned builds):
-          # Windows : CSC_LINK / CSC_KEY_PASSWORD
-          # macOS   : CSC_LINK / CSC_KEY_PASSWORD / APPLE_ID /
-          #           APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID
 
       - name: Upload packaged artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.label }}
+          name: release-win
           path: |
             apps/desktop/release/*.exe
+            apps/desktop/release/*.yml
+            apps/desktop/release/*.blockmap
+          if-no-files-found: error
+          retention-days: 30
+
+  build-mac:
+    name: Build macOS
+    needs: verify
+    runs-on: macos-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate icons
+        run: pnpm icons
+
+      - name: Build & package
+        run: pnpm --filter @inkforge/desktop run dist:mac
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-mac
+          path: |
             apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
+            apps/desktop/release/*.yml
+            apps/desktop/release/*.blockmap
+          if-no-files-found: error
+          retention-days: 30
+
+  build-linux:
+    name: Build Linux
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: ".nvmrc"
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate icons
+        run: pnpm icons
+
+      - name: Build & package
+        run: pnpm --filter @inkforge/desktop run dist:linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: |
             apps/desktop/release/*.AppImage
             apps/desktop/release/*.deb
             apps/desktop/release/*.tar.gz
-            apps/desktop/release/latest*.yml
-            apps/desktop/release/beta*.yml
+            apps/desktop/release/*.yml
             apps/desktop/release/*.blockmap
           if-no-files-found: error
           retention-days: 30
 
   publish:
     name: Publish Release
-    needs: build
+    needs: [build-win, build-mac, build-linux]
+    if: ${{ always() && (needs.build-win.result == 'success' || needs.build-mac.result == 'success' || needs.build-linux.result == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -121,6 +180,9 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ github.event.inputs.tag }}"
             DRAFT="${{ github.event.inputs.draft }}"
+          elif [ "${{ github.event_name }}" = "release" ]; then
+            TAG="${{ github.event.release.tag_name }}"
+            DRAFT="${{ github.event.release.draft }}"
           else
             TAG="${{ github.ref_name }}"
             DRAFT="false"
@@ -133,12 +195,22 @@ jobs:
         with:
           path: release-assets
           pattern: release-*
-          merge-multiple: false
+          merge-multiple: true
 
       - name: Show artifact tree
         shell: bash
         run: |
           ls -R release-assets
+
+      - name: Verify files to publish
+        shell: bash
+        run: |
+          COUNT=$(find release-assets -type f | wc -l)
+          echo "files=$COUNT"
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No packaged artifacts found under release-assets"
+            exit 1
+          fi
 
       - name: Create / update GitHub Release
         uses: softprops/action-gh-release@v2
@@ -148,11 +220,11 @@ jobs:
           prerelease: ${{ contains(steps.meta.outputs.tag, '-') }}
           generate_release_notes: true
           files: |
-            release-assets/**/*.exe
-            release-assets/**/*.dmg
-            release-assets/**/*.zip
-            release-assets/**/*.AppImage
-            release-assets/**/*.deb
-            release-assets/**/*.tar.gz
-            release-assets/**/*.yml
-            release-assets/**/*.blockmap
+            release-assets/*.exe
+            release-assets/*.dmg
+            release-assets/*.zip
+            release-assets/*.AppImage
+            release-assets/*.deb
+            release-assets/*.tar.gz
+            release-assets/*.yml
+            release-assets/*.blockmap
