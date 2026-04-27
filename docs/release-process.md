@@ -32,9 +32,10 @@ git push origin main v0.1.0-beta.0
 
 推标签会触发 `.github/workflows/release.yml`：
 
-- 在 windows / macos / ubuntu 三个 runner 上各自跑 typecheck + verify:all + `electron-builder`
+- 在 windows / macos / ubuntu 三个 runner 上各自跑 typecheck + `electron-builder`
 - 生成 `apps/desktop/release/` 下的产物（.exe / .dmg / .AppImage / .deb + latest*.yml）
 - 创建正式 GitHub Release 并上传产物；这样 Releases 页面会直接显示可下载安装包
+- 更重的 verify 流程留在 CI 和本地预检里，避免某个平台的辅助检查阻塞发布
 
 ## Step 4. 人工检查 + 发布
 
