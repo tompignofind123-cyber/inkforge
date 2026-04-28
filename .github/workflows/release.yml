@@ -42,11 +42,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Rebuild desktop native deps for Electron
-        run: pnpm --filter @inkforge/desktop exec electron-builder install-app-deps
-        env:
-          DEBUG: electron-builder
-
       - name: Typecheck
         run: pnpm typecheck
 
@@ -115,7 +110,7 @@ jobs:
         run: pnpm --filter @inkforge/desktop run dist:ci:win
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          DEBUG: electron-builder
+          DEBUG: electron-builder,electron-rebuild
 
       - name: Show release files
         if: always()
@@ -168,7 +163,7 @@ jobs:
         run: pnpm --filter @inkforge/desktop run dist:ci:mac
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          DEBUG: electron-builder
+          DEBUG: electron-builder,electron-rebuild
 
       - name: Show release files
         if: always()
@@ -222,7 +217,7 @@ jobs:
         run: pnpm --filter @inkforge/desktop run dist:ci:linux
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          DEBUG: electron-builder
+          DEBUG: electron-builder,electron-rebuild
 
       - name: Show release files
         if: always()
