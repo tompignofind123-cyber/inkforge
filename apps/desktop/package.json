@@ -93,6 +93,7 @@
       "buildResources": "build",
       "output": "release"
     },
+    "nativeRebuilder": "legacy",
     "publish": [
       {
         "provider": "generic",
