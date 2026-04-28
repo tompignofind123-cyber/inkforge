@@ -17,5 +17,10 @@
     "sharp": "^0.34.5",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "node-gyp": "^10.3.1"
+    }
   }
 }

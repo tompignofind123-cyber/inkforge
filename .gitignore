@@ -3,6 +3,7 @@ node_modules/
 
 # Workspace caches
 .turbo/
+.pnpm-store/
 
 # Build artifacts
 **/dist/

@@ -2,6 +2,7 @@
   "name": "@inkforge/desktop",
   "version": "0.1.0-beta.0",
   "private": true,
+  "author": "InkForge contributors",
   "license": "MIT",
   "description": "InkForge desktop shell",
   "main": "out/main/index.js",
@@ -33,7 +34,7 @@
     "dist:all": "electron-vite build && electron-builder -mwl",
     "e2e": "electron-vite build && playwright test",
     "e2e:install": "playwright install chromium",
-    "postinstall": "node -e \"try{require('child_process').execSync('electron-builder install-app-deps',{stdio:'inherit'})}catch(e){console.log('skip install-app-deps');}\""
+    "postinstall": "node -e \"if(process.env.CI){console.log('skip install-app-deps on CI');process.exit(0)};try{require('child_process').execSync('electron-builder install-app-deps',{stdio:'inherit'})}catch(e){console.log('skip install-app-deps');}\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "latest",
@@ -100,8 +101,7 @@
     ],
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "nsis"
       ],
       "icon": "build/icon.ico",
       "signAndEditExecutable": false
@@ -157,9 +157,7 @@
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb",
-        "tar.gz"
+        "AppImage"
       ],
       "category": "Office",
       "icon": "build/icon.png",

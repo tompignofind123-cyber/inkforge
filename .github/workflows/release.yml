@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - "*"
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       tag:
@@ -16,6 +14,10 @@ on:
         description: "Create as draft release (workflow_dispatch only)"
         type: boolean
         default: true
+
+concurrency:
+  group: release-${{ github.ref_name }}-${{ github.event_name }}
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -63,6 +65,44 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "pnpm"
 
+      - name: Show commit and desktop build targets
+        shell: pwsh
+        run: |
+          git rev-parse HEAD
+          node -e "const p=require('./apps/desktop/package.json'); console.log('scripts.dist:ci:win=', p.scripts['dist:ci:win']); console.log('build.win.target=', JSON.stringify(p.build.win.target)); console.log('build.linux.target=', JSON.stringify(p.build.linux.target));"
+
+      - name: Setup Python 3.11 (node-gyp)
+        id: setup-python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Show Python version
+        shell: pwsh
+        run: |
+          python --version
+          "${{ steps.setup-python.outputs.python-path }}"
+
+      - name: Export Python env for node-gyp
+        shell: pwsh
+        run: |
+          "PYTHON=${{ steps.setup-python.outputs.python-path }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "npm_config_python=${{ steps.setup-python.outputs.python-path }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "NODE_GYP_FORCE_PYTHON=${{ steps.setup-python.outputs.python-path }}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "npm_config_msvs_version=2022" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Ensure setuptools present for distutils shim
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -c "import sys,distutils; print(sys.version); print('distutils:', distutils.__file__)"
+
+      - name: Pin npm python for node-gyp
+        shell: pwsh
+        run: |
+          npm config set python "$env:PYTHON"
+          npm config get python
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -109,6 +149,12 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: "pnpm"
+
+      - name: Show commit and desktop build targets
+        shell: bash
+        run: |
+          git rev-parse HEAD
+          node -e "const p=require('./apps/desktop/package.json'); console.log('scripts.dist:ci:mac=', p.scripts['dist:ci:mac']); console.log('build.win.target=', JSON.stringify(p.build.win.target)); console.log('build.linux.target=', JSON.stringify(p.build.linux.target));"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -158,6 +204,12 @@ jobs:
           node-version-file: ".nvmrc"
           cache: "pnpm"
 
+      - name: Show commit and desktop build targets
+        shell: bash
+        run: |
+          git rev-parse HEAD
+          node -e "const p=require('./apps/desktop/package.json'); console.log('scripts.dist:ci:linux=', p.scripts['dist:ci:linux']); console.log('build.win.target=', JSON.stringify(p.build.win.target)); console.log('build.linux.target=', JSON.stringify(p.build.linux.target));"
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -183,8 +235,6 @@ jobs:
           name: release-linux
           path: |
             apps/desktop/release/*.AppImage
-            apps/desktop/release/*.deb
-            apps/desktop/release/*.tar.gz
             apps/desktop/release/*.yml
             apps/desktop/release/*.blockmap
           if-no-files-found: error
@@ -204,9 +254,6 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             TAG="${{ github.event.inputs.tag }}"
             DRAFT="${{ github.event.inputs.draft }}"
-          elif [ "${{ github.event_name }}" = "release" ]; then
-            TAG="${{ github.event.release.tag_name }}"
-            DRAFT="${{ github.event.release.draft }}"
           else
             TAG="${{ github.ref_name }}"
             DRAFT="false"
