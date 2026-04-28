@@ -42,6 +42,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Rebuild desktop native deps for Electron
+        run: pnpm --filter @inkforge/desktop exec electron-builder install-app-deps
+        env:
+          DEBUG: electron-builder
+
       - name: Typecheck
         run: pnpm typecheck
 
