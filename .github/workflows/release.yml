@@ -156,6 +156,31 @@ jobs:
           git rev-parse HEAD
           node -e "const p=require('./apps/desktop/package.json'); console.log('scripts.dist:ci:mac=', p.scripts['dist:ci:mac']); console.log('build.win.target=', JSON.stringify(p.build.win.target)); console.log('build.linux.target=', JSON.stringify(p.build.linux.target));"
 
+      - name: Setup Python 3.11 (node-gyp)
+        id: setup-python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Export Python env for node-gyp
+        shell: bash
+        run: |
+          echo "PYTHON=${{ steps.setup-python.outputs.python-path }}" >> "$GITHUB_ENV"
+          echo "npm_config_python=${{ steps.setup-python.outputs.python-path }}" >> "$GITHUB_ENV"
+          echo "NODE_GYP_FORCE_PYTHON=${{ steps.setup-python.outputs.python-path }}" >> "$GITHUB_ENV"
+
+      - name: Ensure setuptools present for distutils shim
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -c "import sys,distutils; print(sys.version); print('distutils:', distutils.__file__)"
+
+      - name: Pin npm python for node-gyp
+        shell: bash
+        run: |
+          npm config set python "$PYTHON"
+          npm config get python
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -180,7 +205,6 @@ jobs:
         with:
           name: release-mac
           path: |
-            apps/desktop/release/*.dmg
             apps/desktop/release/*.zip
             apps/desktop/release/*.yml
             apps/desktop/release/*.blockmap
