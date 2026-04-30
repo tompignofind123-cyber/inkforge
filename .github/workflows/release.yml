@@ -136,7 +136,7 @@ jobs:
   build-mac:
     name: Build macOS
     needs: verify
-    runs-on: macos-13
+    runs-on: macos-latest
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v6
@@ -243,7 +243,11 @@ jobs:
   publish:
     name: Publish Release
     needs: [build-win, build-mac, build-linux]
-    if: ${{ needs.build-win.result == 'success' && needs.build-mac.result == 'success' && needs.build-linux.result == 'success' }}
+    # Tolerant publish: as long as Windows + Linux succeed, ship the release.
+    # If macOS also succeeds its artifacts will be included automatically;
+    # if macOS fails, is cancelled, or times out, we still publish Win+Linux
+    # instead of leaving the Releases page empty.
+    if: ${{ always() && needs.build-win.result == 'success' && needs.build-linux.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
