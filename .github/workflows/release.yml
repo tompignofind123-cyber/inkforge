@@ -123,7 +123,7 @@ jobs:
           }
 
       - name: Upload packaged artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-win
           path: |
@@ -176,7 +176,7 @@ jobs:
           fi
 
       - name: Upload packaged artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-mac
           path: |
@@ -230,7 +230,7 @@ jobs:
           fi
 
       - name: Upload packaged artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-linux
           path: |
