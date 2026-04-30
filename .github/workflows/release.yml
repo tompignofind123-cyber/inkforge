@@ -175,12 +175,6 @@ jobs:
           python -m pip install --upgrade pip setuptools
           python -c "import sys,distutils; print(sys.version); print('distutils:', distutils.__file__)"
 
-      - name: Pin npm python for node-gyp
-        shell: bash
-        run: |
-          npm config set python "$PYTHON"
-          npm config get python
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
