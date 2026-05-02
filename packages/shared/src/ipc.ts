@@ -39,6 +39,19 @@ import type {
   TavernSessionRecord,
   TokenBudgetState,
   WorldEntryRecord,
+  // ----- M7 · Bookshelf -----
+  AutoWriterAgentBinding,
+  AutoWriterAgentRole,
+  AutoWriterCorrectionEntry,
+  AutoWriterRunRecord,
+  AutoWriterRunStatus,
+  BookCoverRecord,
+  ChapterLogEntryKind,
+  ChapterLogEntryRecord,
+  ChapterOrigin,
+  ChapterOriginTagRecord,
+  ChapterSnapshotKind,
+  ChapterSnapshotRecord,
 } from "./domain";
 
 export const ipcChannels = {
@@ -154,6 +167,50 @@ export const ipcChannels = {
   marketFetchRegistry: "market:fetch-registry",
   marketInstallSkill: "market:install-skill",
   marketBuildPublishBundle: "market:build-publish-bundle",
+  // ===== M7 · Bookshelf =====
+  bookshelfListBooks: "bookshelf:list-books",
+  bookCoverUpload: "book-cover:upload",
+  bookCoverGet: "book-cover:get",
+  bookCoverDelete: "book-cover:delete",
+  // ----- Origin Tag -----
+  originTagSet: "origin-tag:set",
+  originTagGet: "origin-tag:get",
+  originTagListByOrigin: "origin-tag:list-by-origin",
+  // ----- Chapter Log -----
+  chapterLogList: "chapter-log:list",
+  chapterLogAppendManual: "chapter-log:append-manual",
+  chapterLogAppendAi: "chapter-log:append-ai",
+  chapterLogDelete: "chapter-log:delete",
+  // ----- Auto Writer -----
+  autoWriterStart: "auto-writer:start",
+  autoWriterStop: "auto-writer:stop",
+  autoWriterPause: "auto-writer:pause",
+  autoWriterResume: "auto-writer:resume",
+  autoWriterGetRun: "auto-writer:get-run",
+  autoWriterListRuns: "auto-writer:list-runs",
+  autoWriterInjectIdea: "auto-writer:inject-idea",
+  autoWriterCorrect: "auto-writer:correct",
+  // ----- Snapshot -----
+  snapshotCreate: "snapshot:create",
+  snapshotList: "snapshot:list",
+  snapshotGet: "snapshot:get",
+  snapshotRestore: "snapshot:restore",
+  snapshotDelete: "snapshot:delete",
+  // ----- Window 控制（自定义 titlebar 用） -----
+  windowMinimize: "window:minimize",
+  windowToggleMaximize: "window:toggle-maximize",
+  windowClose: "window:close",
+  windowIsMaximized: "window:is-maximized",
+  // ----- M8 · 活人感（Achievements + Letters） -----
+  achievementList: "achievement:list",
+  achievementCheck: "achievement:check",
+  achievementStats: "achievement:stats",
+  letterList: "letter:list",
+  letterGenerate: "letter:generate",
+  letterMarkRead: "letter:mark-read",
+  letterPin: "letter:pin",
+  letterDismiss: "letter:dismiss",
+  letterDelete: "letter:delete",
 } as const;
 
 export const ipcEventChannels = {
@@ -171,6 +228,16 @@ export const ipcEventChannels = {
   dailySummaryChunk: "daily:summary-chunk",
   dailySummaryDone: "daily:summary-done",
   updateStatus: "update:status",
+  // ===== M7 · Bookshelf =====
+  autoWriterChunk: "auto-writer:chunk",
+  autoWriterPhase: "auto-writer:phase",
+  autoWriterDone: "auto-writer:done",
+  autoWriterSnapshot: "auto-writer:snapshot",
+  chapterLogReminder: "chapter-log:daily-reminder",
+  windowMaximizedChanged: "window:maximized-changed",
+  // ----- M8 · 活人感 -----
+  achievementUnlocked: "achievement:unlocked",
+  letterArrived: "letter:arrived",
 } as const;
 
 export interface ProjectCreateInput {
@@ -1312,3 +1379,593 @@ export interface IpcEventMap {
 
 export type IpcChannel = keyof IpcRequestMap;
 export type IpcEventChannel = keyof IpcEventMap;
+
+// =====================================================================
+// M7 · Bookshelf Module
+// 新 IPC 契约。利用 TypeScript interface declaration merging 扩展
+// IpcRequestMap / IpcEventMap，避免修改上方现有定义的内部顺序。
+// =====================================================================
+
+// ---------- Bookshelf · 书架视图 ----------
+
+/** 书架列表项：聚合 ProjectRecord + 封面 + 进度统计 + 各 origin 章节计数。 */
+export interface BookSummary {
+  project: ProjectRecord;
+  cover: BookCoverRecord | null;
+  chapterCount: number;
+  totalWords: number;
+  /** 当日新增字数（按 daily_logs 取）。 */
+  todayWords: number;
+  /** 最近一次章节更新的 ISO 时间，便于按"最近编辑"排序。 */
+  lastChapterUpdatedAt: string | null;
+  /** 各 origin 分类的章节数。'manual' 包含未打标签的旧章节。 */
+  originCounts: Record<ChapterOrigin, number>;
+}
+
+export type BookshelfListBooksResponse = BookSummary[];
+
+// ---------- Bookshelf · 封面 ----------
+
+export interface BookCoverUploadInput {
+  projectId: string;
+  /** 原始文件名，用于推断扩展名。 */
+  fileName: string;
+  /** Base64-encoded bytes，主进程解码后写入。 */
+  base64: string;
+  mime: string;
+}
+
+export interface BookCoverUploadResponse {
+  cover: BookCoverRecord;
+}
+
+export interface BookCoverGetInput {
+  projectId: string;
+}
+
+export interface BookCoverGetResponse {
+  cover: BookCoverRecord | null;
+  /** 若 cover 存在，返回 base64 内容供 renderer 直接显示。 */
+  base64: string | null;
+}
+
+export interface BookCoverDeleteInput {
+  projectId: string;
+}
+
+// ---------- Origin Tag ----------
+
+export interface OriginTagSetInput {
+  chapterId: string;
+  origin: ChapterOrigin;
+}
+
+export interface OriginTagGetInput {
+  chapterId: string;
+}
+
+export interface OriginTagListByOriginInput {
+  projectId: string;
+  origin: ChapterOrigin;
+  /**
+   * 仅 origin === 'manual' 时生效。默认 true：把未打标签的旧章节也纳入此分类。
+   * 这样老用户进入书房时不需要批量打标。
+   */
+  includeUntagged?: boolean;
+}
+
+export interface OriginTagListByOriginResponse {
+  chapterIds: string[];
+}
+
+// ---------- Chapter Log ----------
+
+export interface ChapterLogListInput {
+  chapterId: string;
+  limit?: number;
+  /** 默认 true：最新在前。 */
+  desc?: boolean;
+}
+
+export interface ChapterLogAppendManualInput {
+  chapterId: string;
+  projectId: string;
+  content: string;
+}
+
+export interface ChapterLogAppendAiInput {
+  chapterId: string;
+  projectId: string;
+  /** AI 触发的日志类型：ai-run / progress 二选一。 */
+  kind: Extract<ChapterLogEntryKind, "ai-run" | "progress">;
+  content: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ChapterLogDeleteInput {
+  entryId: string;
+}
+
+// ---------- Auto Writer ----------
+
+export interface AutoWriterStartInput {
+  projectId: string;
+  chapterId: string;
+  userIdeas: string;
+  /**
+   * Agent 与模型的绑定。常见两种形态：
+   *   - 默认（统一模型）：传 1 条带 role='writer' 的 binding，主进程把它复制给其他 3 个角色
+   *   - 高级（分别绑定）：传 4 条 binding，每条对应一个角色
+   */
+  agents: AutoWriterAgentBinding[];
+  /** 单段长度目标（字数），默认 400。 */
+  targetSegmentLength?: number;
+  /** 期望段数上限（含 Planner 提的 beat 数）。默认 12。 */
+  maxSegments?: number;
+  /** 单段最多重写次数（Critic 不通过时回炉次数上限），默认 3。 */
+  maxRewritesPerSegment?: number;
+  /** 是否启用 OOC 守门员（默认 true）。 */
+  enableOocGate?: boolean;
+}
+
+export interface AutoWriterStartResponse {
+  runId: string;
+  status: "started";
+}
+
+export interface AutoWriterStopInput {
+  runId: string;
+}
+
+export interface AutoWriterStopResponse {
+  runId: string;
+  stopped: true;
+}
+
+export interface AutoWriterPauseInput {
+  runId: string;
+}
+
+export interface AutoWriterResumeInput {
+  runId: string;
+}
+
+export interface AutoWriterGetRunInput {
+  runId: string;
+}
+
+export interface AutoWriterListRunsInput {
+  /** chapterId 与 projectId 至少传一个。 */
+  chapterId?: string;
+  projectId?: string;
+  limit?: number;
+  status?: AutoWriterRunStatus;
+}
+
+export interface AutoWriterInjectIdeaInput {
+  runId: string;
+  /** 用户中途追加的思路/约束，下一段 Writer 会作为 extraSystem 注入。 */
+  content: string;
+}
+
+export interface AutoWriterCorrectInput {
+  runId: string;
+  content: string;
+  /** 用户标记的错误段落原文片段，便于 Critic / Writer 定位。 */
+  targetExcerpt?: string;
+}
+
+export interface AutoWriterCorrectResponse {
+  runId: string;
+  correction: AutoWriterCorrectionEntry;
+  run: AutoWriterRunRecord;
+}
+
+// ---------- Auto Writer · 流式事件 ----------
+
+export interface AutoWriterChunkEvent {
+  runId: string;
+  chapterId: string;
+  agentRole: AutoWriterAgentRole;
+  segmentIndex: number;
+  delta: string;
+  accumulatedText: string;
+  emittedAt: string;
+}
+
+/** 状态机切换事件。前端用它驱动「Phase 指示器」。 */
+export type AutoWriterPhase =
+  | "planner"
+  | "writer"
+  | "critic"
+  | "reflector"
+  | "rewrite-segment"
+  | "next-segment"
+  | "done";
+
+export interface AutoWriterPhaseEvent {
+  runId: string;
+  chapterId: string;
+  phase: AutoWriterPhase;
+  segmentIndex: number;
+  /** 仅 phase='rewrite-segment' 时有：本段累计重写次数（含本次）。 */
+  rewriteCount?: number;
+  /** 仅 phase='critic' 完成时有：findings 按 severity 计数。 */
+  criticSummary?: { errorCount: number; warnCount: number; infoCount: number };
+  emittedAt: string;
+}
+
+export interface AutoWriterDoneEvent {
+  runId: string;
+  chapterId: string;
+  status: AutoWriterRunStatus;
+  totalSegments: number;
+  totalRewrites: number;
+  totalTokensIn: number;
+  totalTokensOut: number;
+  error?: string;
+  finishedAt: string;
+}
+
+export interface AutoWriterSnapshotEvent {
+  runId: string;
+  chapterId: string;
+  snapshot: ChapterSnapshotRecord;
+  emittedAt: string;
+}
+
+// ---------- Snapshot ----------
+
+export interface SnapshotCreateInput {
+  chapterId: string;
+  projectId: string;
+  /** 用户为手动快照命名，可选；自动快照传 null。 */
+  label?: string | null;
+  /** 默认 'manual'。 */
+  kind?: ChapterSnapshotKind;
+  /** 关联的 AutoWriter 运行 id。 */
+  runId?: string;
+  agentRole?: AutoWriterAgentRole;
+  sourceMessageId?: string;
+}
+
+export interface SnapshotCreateResponse {
+  snapshot: ChapterSnapshotRecord;
+}
+
+export interface SnapshotListInput {
+  chapterId: string;
+  limit?: number;
+  kinds?: ChapterSnapshotKind[];
+  runId?: string;
+}
+
+export interface SnapshotGetInput {
+  snapshotId: string;
+}
+
+export interface SnapshotGetResponse {
+  snapshot: ChapterSnapshotRecord;
+  /** 快照文件正文（utf-8）。 */
+  content: string;
+}
+
+export interface SnapshotRestoreInput {
+  snapshotId: string;
+}
+
+export interface SnapshotRestoreResponse {
+  /** 被还原回章节的快照。 */
+  restored: ChapterSnapshotRecord;
+  /** 还原前自动产生的 'pre-restore' 快照（让还原本身也可撤销）。 */
+  preRestoreSnapshot: ChapterSnapshotRecord;
+  /** 还原后章节最新内容（renderer 用它刷新编辑器）。 */
+  chapterContent: string;
+}
+
+export interface SnapshotDeleteInput {
+  snapshotId: string;
+}
+
+// ---------- 每日日志提醒 ----------
+
+export interface ChapterLogDailyReminderEvent {
+  /** 该提醒覆盖的项目和章节范围；空表示全局提醒。 */
+  projectId?: string;
+  chapterIds?: string[];
+  emittedAt: string;
+}
+
+// ---------- 通过接口合并扩展请求/事件映射 ----------
+
+export interface IpcRequestMap {
+  // Bookshelf
+  [ipcChannels.bookshelfListBooks]: { req: void; res: BookshelfListBooksResponse };
+  [ipcChannels.bookCoverUpload]: { req: BookCoverUploadInput; res: BookCoverUploadResponse };
+  [ipcChannels.bookCoverGet]: { req: BookCoverGetInput; res: BookCoverGetResponse };
+  [ipcChannels.bookCoverDelete]: {
+    req: BookCoverDeleteInput;
+    res: { projectId: string };
+  };
+  // Origin Tag
+  [ipcChannels.originTagSet]: {
+    req: OriginTagSetInput;
+    res: ChapterOriginTagRecord;
+  };
+  [ipcChannels.originTagGet]: {
+    req: OriginTagGetInput;
+    res: ChapterOriginTagRecord | null;
+  };
+  [ipcChannels.originTagListByOrigin]: {
+    req: OriginTagListByOriginInput;
+    res: OriginTagListByOriginResponse;
+  };
+  // Chapter Log
+  [ipcChannels.chapterLogList]: {
+    req: ChapterLogListInput;
+    res: ChapterLogEntryRecord[];
+  };
+  [ipcChannels.chapterLogAppendManual]: {
+    req: ChapterLogAppendManualInput;
+    res: ChapterLogEntryRecord;
+  };
+  [ipcChannels.chapterLogAppendAi]: {
+    req: ChapterLogAppendAiInput;
+    res: ChapterLogEntryRecord;
+  };
+  [ipcChannels.chapterLogDelete]: {
+    req: ChapterLogDeleteInput;
+    res: { entryId: string };
+  };
+  // Auto Writer
+  [ipcChannels.autoWriterStart]: {
+    req: AutoWriterStartInput;
+    res: AutoWriterStartResponse;
+  };
+  [ipcChannels.autoWriterStop]: {
+    req: AutoWriterStopInput;
+    res: AutoWriterStopResponse;
+  };
+  [ipcChannels.autoWriterPause]: {
+    req: AutoWriterPauseInput;
+    res: AutoWriterRunRecord;
+  };
+  [ipcChannels.autoWriterResume]: {
+    req: AutoWriterResumeInput;
+    res: AutoWriterRunRecord;
+  };
+  [ipcChannels.autoWriterGetRun]: {
+    req: AutoWriterGetRunInput;
+    res: AutoWriterRunRecord | null;
+  };
+  [ipcChannels.autoWriterListRuns]: {
+    req: AutoWriterListRunsInput;
+    res: AutoWriterRunRecord[];
+  };
+  [ipcChannels.autoWriterInjectIdea]: {
+    req: AutoWriterInjectIdeaInput;
+    res: AutoWriterRunRecord;
+  };
+  [ipcChannels.autoWriterCorrect]: {
+    req: AutoWriterCorrectInput;
+    res: AutoWriterCorrectResponse;
+  };
+  // Snapshot
+  [ipcChannels.snapshotCreate]: {
+    req: SnapshotCreateInput;
+    res: SnapshotCreateResponse;
+  };
+  [ipcChannels.snapshotList]: {
+    req: SnapshotListInput;
+    res: ChapterSnapshotRecord[];
+  };
+  [ipcChannels.snapshotGet]: {
+    req: SnapshotGetInput;
+    res: SnapshotGetResponse;
+  };
+  [ipcChannels.snapshotRestore]: {
+    req: SnapshotRestoreInput;
+    res: SnapshotRestoreResponse;
+  };
+  [ipcChannels.snapshotDelete]: {
+    req: SnapshotDeleteInput;
+    res: { snapshotId: string };
+  };
+  // Window
+  [ipcChannels.windowMinimize]: { req: void; res: { ok: true } };
+  [ipcChannels.windowToggleMaximize]: { req: void; res: { isMaximized: boolean } };
+  [ipcChannels.windowClose]: { req: void; res: { ok: true } };
+  [ipcChannels.windowIsMaximized]: { req: void; res: { isMaximized: boolean } };
+}
+
+export interface IpcEventMap {
+  [ipcEventChannels.autoWriterChunk]: AutoWriterChunkEvent;
+  [ipcEventChannels.autoWriterPhase]: AutoWriterPhaseEvent;
+  [ipcEventChannels.autoWriterDone]: AutoWriterDoneEvent;
+  [ipcEventChannels.autoWriterSnapshot]: AutoWriterSnapshotEvent;
+  [ipcEventChannels.chapterLogReminder]: ChapterLogDailyReminderEvent;
+  [ipcEventChannels.windowMaximizedChanged]: { isMaximized: boolean };
+}
+
+// =====================================================================
+// M8 · 活人感 IpcRequestMap / IpcEventMap 扩展
+// =====================================================================
+
+export interface AchievementListInput {
+  projectId: string;
+}
+
+export interface AchievementCheckInput {
+  projectId: string;
+  /** 触发原因：用于在多个事件源里去重检查；可选。 */
+  trigger?:
+    | "chapter-update"
+    | "chapter-create"
+    | "character-create"
+    | "world-create"
+    | "auto-writer-done"
+    | "letter-generate"
+    | "snapshot-create"
+    | "review-done"
+    | "manual";
+}
+
+export interface AchievementCheckResponse {
+  newlyUnlocked: import("./domain").AchievementUnlockedRecord[];
+}
+
+export interface AchievementStatsResponse {
+  totalUnlocked: number;
+  totalCatalog: number;
+  /** 各 rarity 解锁数量。 */
+  byRarity: Record<import("./domain").AchievementRarity, number>;
+  /** 累计字数 / 章节数 / 角色数 / 世界观条目 / AutoWriter 次数等概要。 */
+  stats: {
+    totalWords: number;
+    totalChapters: number;
+    totalCharacters: number;
+    totalWorldEntries: number;
+    autoWriterRuns: number;
+    snapshotsManual: number;
+    streakDays: number;
+    longestStreak: number;
+  };
+}
+
+export interface LetterListInput {
+  projectId: string;
+  includeDismissed?: boolean;
+  characterId?: string;
+  limit?: number;
+}
+
+export interface LetterGenerateInput {
+  projectId: string;
+  /** 留空让 service 自动挑一个最久没出场的角色。 */
+  characterId?: string;
+  /** 留空让 service 随机挑（带权重，complaint 概率较低）。 */
+  tone?: import("./domain").CharacterLetterTone;
+  /** 用于 LLM 调用：指定 provider/model；省略走默认。 */
+  providerId?: string;
+  model?: string;
+}
+
+export interface LetterMarkReadInput {
+  letterId: string;
+  read: boolean;
+}
+
+export interface LetterPinInput {
+  letterId: string;
+  pinned: boolean;
+}
+
+export interface LetterDismissInput {
+  letterId: string;
+}
+
+export interface LetterDeleteInput {
+  letterId: string;
+}
+
+export interface AchievementUnlockedEvent {
+  projectId: string;
+  achievement: import("./domain").AchievementUnlockedRecord;
+}
+
+export interface LetterArrivedEvent {
+  projectId: string;
+  letter: import("./domain").CharacterLetterRecord;
+}
+
+declare module "./ipc" {
+  // 这里通过 declaration merging 把 M8 增量挂上 IpcRequestMap / IpcEventMap，
+  // 但因为 ipc.ts 自身是模块文件，runtime 上同一文件内 `declare module "./ipc"`
+  // 不会生效；我们改用直接扩接口的方式。下方 `IpcRequestMapM8` 仅声明，
+  // 主进程 / preload 用具体类型而非映射键。
+}
+
+export interface IpcRequestMapM8 {
+  [ipcChannels.achievementList]: {
+    req: AchievementListInput;
+    res: import("./domain").AchievementUnlockedRecord[];
+  };
+  [ipcChannels.achievementCheck]: {
+    req: AchievementCheckInput;
+    res: AchievementCheckResponse;
+  };
+  [ipcChannels.achievementStats]: {
+    req: { projectId: string };
+    res: AchievementStatsResponse;
+  };
+  [ipcChannels.letterList]: {
+    req: LetterListInput;
+    res: import("./domain").CharacterLetterRecord[];
+  };
+  [ipcChannels.letterGenerate]: {
+    req: LetterGenerateInput;
+    res: import("./domain").CharacterLetterRecord;
+  };
+  [ipcChannels.letterMarkRead]: {
+    req: LetterMarkReadInput;
+    res: { letterId: string };
+  };
+  [ipcChannels.letterPin]: {
+    req: LetterPinInput;
+    res: { letterId: string };
+  };
+  [ipcChannels.letterDismiss]: {
+    req: LetterDismissInput;
+    res: { letterId: string };
+  };
+  [ipcChannels.letterDelete]: {
+    req: LetterDeleteInput;
+    res: { letterId: string };
+  };
+}
+
+// 通过同文件 interface declaration merging 把 M8 接入主映射
+// （TS 同名 interface 自动合并）
+export interface IpcRequestMap {
+  [ipcChannels.achievementList]: {
+    req: AchievementListInput;
+    res: import("./domain").AchievementUnlockedRecord[];
+  };
+  [ipcChannels.achievementCheck]: {
+    req: AchievementCheckInput;
+    res: AchievementCheckResponse;
+  };
+  [ipcChannels.achievementStats]: {
+    req: { projectId: string };
+    res: AchievementStatsResponse;
+  };
+  [ipcChannels.letterList]: {
+    req: LetterListInput;
+    res: import("./domain").CharacterLetterRecord[];
+  };
+  [ipcChannels.letterGenerate]: {
+    req: LetterGenerateInput;
+    res: import("./domain").CharacterLetterRecord;
+  };
+  [ipcChannels.letterMarkRead]: {
+    req: LetterMarkReadInput;
+    res: { letterId: string };
+  };
+  [ipcChannels.letterPin]: {
+    req: LetterPinInput;
+    res: { letterId: string };
+  };
+  [ipcChannels.letterDismiss]: {
+    req: LetterDismissInput;
+    res: { letterId: string };
+  };
+  [ipcChannels.letterDelete]: {
+    req: LetterDeleteInput;
+    res: { letterId: string };
+  };
+}
+
+export interface IpcEventMap {
+  [ipcEventChannels.achievementUnlocked]: AchievementUnlockedEvent;
+  [ipcEventChannels.letterArrived]: LetterArrivedEvent;
+}

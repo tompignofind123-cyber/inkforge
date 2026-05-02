@@ -15,7 +15,10 @@ export type MainView =
   | "tavern"
   | "world"
   | "research"
-  | "review";
+  | "review"
+  | "bookshelf"
+  | "achievement"
+  | "letters";
 
 export interface StreamingAnalysis {
   analysisId: string;

@@ -17,7 +17,8 @@
     "verify:provider": "node scripts/verify-provider.cjs",
     "verify:i18n": "node scripts/verify-i18n.cjs",
     "verify:catalog": "node scripts/verify-catalog.cjs",
-    "verify:all": "pnpm run verify:migrations && pnpm run verify:engine && pnpm run verify:review-engine && pnpm run verify:provider && pnpm run verify:i18n && pnpm run verify:catalog",
+    "verify:auto-writer": "node scripts/verify-auto-writer.cjs",
+    "verify:all": "pnpm run verify:migrations && pnpm run verify:engine && pnpm run verify:review-engine && pnpm run verify:provider && pnpm run verify:i18n && pnpm run verify:catalog && pnpm run verify:auto-writer",
     "bench:storage": "node scripts/_run-in-electron.cjs scripts/bench-storage.cjs",
     "dist": "electron-vite build && electron-builder",
     "dist:dir": "electron-vite build && electron-builder --dir",
@@ -46,6 +47,7 @@
     "node-pty": "^1.0.0"
   },
   "devDependencies": {
+    "@inkforge/auto-writer-engine": "workspace:*",
     "@inkforge/editor": "workspace:*",
     "@inkforge/llm-core": "workspace:*",
     "@inkforge/research-core": "workspace:*",

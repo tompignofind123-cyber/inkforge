@@ -1,0 +1,92 @@
+import { useEffect, useState } from "react";
+import {
+  findAchievement,
+  rarityColor,
+  type AchievementUnlockedRecord,
+} from "@inkforge/shared";
+import { achievementApi } from "../../lib/api";
+
+interface ToastItem {
+  rec: AchievementUnlockedRecord;
+  expiresAt: number;
+}
+
+const VISIBLE_MS = 6000;
+
+/**
+ * 全局成就解锁通知。挂在 App.tsx 顶层。
+ * 监听 achievement:unlocked 事件，把弹窗串成右下角向上滑入的卡片队列。
+ */
+export function AchievementToast(): JSX.Element | null {
+  const [items, setItems] = useState<ToastItem[]>([]);
+
+  useEffect(() => {
+    const off = achievementApi.onUnlocked((evt) => {
+      setItems((prev) => [
+        ...prev,
+        { rec: evt.achievement, expiresAt: Date.now() + VISIBLE_MS },
+      ]);
+    });
+    return off;
+  }, []);
+
+  // 每秒清理过期项
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      setItems((prev) => prev.filter((it) => it.expiresAt > now));
+    }, 500);
+    return () => clearInterval(id);
+  }, []);
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col gap-2">
+      {items.map((it) => (
+        <ToastCard
+          key={it.rec.id}
+          rec={it.rec}
+          onClose={() =>
+            setItems((prev) => prev.filter((p) => p.rec.id !== it.rec.id))
+          }
+        />
+      ))}
+    </div>
+  );
+}
+
+function ToastCard({
+  rec,
+  onClose,
+}: {
+  rec: AchievementUnlockedRecord;
+  onClose: () => void;
+}): JSX.Element {
+  const def = findAchievement(rec.achievementId);
+  if (!def) return <></>;
+  const color = rarityColor(def.rarity);
+  return (
+    <div
+      role="status"
+      className={`pointer-events-auto relative flex w-72 items-start gap-3 rounded-xl border p-3 shadow-2xl ring-1 backdrop-blur ${color.bg} ${color.ring} animate-[companion-jump_0.6s_ease-in-out_1]`}
+    >
+      <span className="text-2xl">{def.icon}</span>
+      <div className="flex-1">
+        <div className={`text-[10px] uppercase tracking-wider ${color.text}`}>
+          🏆 解锁成就 · {def.rarity.toUpperCase()}
+        </div>
+        <div className="text-sm font-semibold text-ink-100">{def.title}</div>
+        <div className="text-[11px] text-ink-300">{def.description}</div>
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="absolute right-1 top-1 text-ink-400 hover:text-ink-100"
+        aria-label="关闭"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}

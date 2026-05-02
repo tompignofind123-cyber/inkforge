@@ -37,6 +37,16 @@ const EXPECTED_TABLES = [
   "review_findings",
   "provider_keys",
   "schema_migrations",
+  // ----- M7 · Bookshelf (v14) -----
+  "book_covers",
+  "chapter_origin_tags",
+  "chapter_logs",
+  "chapter_log_entries",
+  "chapter_snapshots",
+  "auto_writer_runs",
+  // ----- M8 · 活人感 (v15) -----
+  "achievements_unlocked",
+  "character_letters",
 ];
 
 const EXPECTED_INDEXES = [
@@ -62,9 +72,23 @@ const EXPECTED_INDEXES = [
   "idx_review_reports_project_started",
   "idx_findings_report_severity",
   "idx_provider_keys_provider",
+  // ----- M7 · Bookshelf (v14) -----
+  "uidx_book_covers_project",
+  "idx_chapter_origin_tags_origin",
+  "idx_chapter_logs_project",
+  "idx_chapter_log_entries_chapter_created",
+  "idx_chapter_snapshots_chapter_created",
+  "idx_chapter_snapshots_run",
+  "idx_auto_writer_runs_chapter",
+  "idx_auto_writer_runs_project",
+  // ----- M8 · 活人感 (v15) -----
+  "uidx_achievements_project_aid",
+  "idx_achievements_project_unlocked",
+  "idx_character_letters_project_generated",
+  "idx_character_letters_character",
 ];
 
-const EXPECTED_MAX_VERSION = 13;
+const EXPECTED_MAX_VERSION = 15;
 const EXPECTED_VERSIONS = Array.from(
   { length: EXPECTED_MAX_VERSION },
   (_, i) => i + 1,

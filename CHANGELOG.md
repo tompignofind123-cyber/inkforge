@@ -6,6 +6,48 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), adhering to [S
 
 ---
 
+## [Unreleased] — M7 · Bookshelf Module
+
+新增「书房」顶层模块，扩展 4 大能力，**完全旁路现有写作流程**：
+
+### 🚀 新功能
+
+- **📖 书房（多书并存）**：ActivityBar 新增书房入口；标签页同时打开多本书；首次进入显示书架网格选择；状态用 zustand persist 落 localStorage
+- **🖼 书籍封面**：每本书可上传 PNG/JPG/WEBP/GIF 封面（≤2 MB），文件落 `<project>/.bookshelf/cover.<ext>`
+- **📑 章节来源分类**：每章打 `ai-auto` / `ai-assisted` / `manual` 逻辑标签；书房按 origin 分 4 个 Tab 过滤；旧章节自动归入 `manual`
+- **🤖 AutoWriter（多 Agent 全自动写小说）**：4 角色协作（Planner → Writer → Critic → Reflector）+ 共享上下文（人物档案 / 世界观 / 已写正文 / 用户介入）+ 段落级 OOC 守门员 + 单段重写上限；用户只需提供「思路 + 纠错」；默认统一模型，高级可为每个角色分别绑模型
+- **📓 章节独立日志**：每章一份日志，触发方式 4 种：完成进度自动 / AutoWriter 运行结束自动 / 手动随时记录 / 每日 12:00 提醒；日志条目可由用户或 AI 写入
+- **↶ 章节快照（撤回 AI 修改）**：每段 AI 写完前后自动打快照（pre-ai / post-ai）；用户可手动备份命名快照；还原时再打 `pre-restore` 快照让还原本身也可撤；自动快照保留最近 50 条，手动快照永不清理
+
+### 🆕 数据层（迁移 v14，6 张新表）
+
+`book_covers` / `chapter_origin_tags` / `chapter_logs` / `chapter_log_entries` / `chapter_snapshots` / `auto_writer_runs`，配套 8 个新索引；现有 13 个迁移与 20 张旧表零修改。
+
+### 🆕 包
+
+- `@inkforge/auto-writer-engine`（与 `tavern-engine` 平级）：纯逻辑层，DI 接入；导出 `runAutoWriterPipeline / parseFindings / shouldRewriteFromFindings / makeRoleResolver / buildPlanner|Writer|Critic|ReflectorUser` 等
+
+### 🆕 IPC（24 request + 5 event）
+
+`bookshelf:list-books` · `book-cover:upload/get/delete` · `origin-tag:set/get/list-by-origin` · `chapter-log:list/append-manual/append-ai/delete` · `auto-writer:start/stop/pause/resume/get-run/list-runs/inject-idea/correct` · `snapshot:create/list/get/restore/delete` · `auto-writer:chunk/phase/done/snapshot` · `chapter-log:daily-reminder`
+
+### 🧪 验收
+
+- 新增 `verify:auto-writer`（41 断言：findings parse 容错 8 / 重写阈值 6 / 计数 3 / markdown 渲染 5 / role resolver 8 / prompt builder 11）
+- `verify:migrations` 升级到 26 表 + 30 索引 + 14 版本
+- `verify:all` 包含全部 7 个 suite
+
+### 📦 文件布局
+
+`<project>/.bookshelf/cover.<ext>` 与 `<project>/.history/snapshots/<chapId>/<id>.md`——与现有 `chapters/`、`.history/.autosave-*.md` 物理隔离，零冲突。
+
+### 🔒 兼容
+
+- 旧用户数据 100% 兼容：迁移仅 `CREATE IF NOT EXISTS`，旧章节没 origin tag 自动按 `manual` 渲染
+- 现有所有 IPC channel、表、UI 组件、Quick Action、Skill / Tavern / Review 流程零修改
+
+---
+
 ## [0.1.0-beta.0] — 2026-04-21
 
 First public beta. Core writing flow + AI collaboration + release infra complete.

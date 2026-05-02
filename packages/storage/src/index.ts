@@ -22,3 +22,12 @@ export * from "./repositories/review-report-repo";
 export * from "./repositories/review-finding-repo";
 export * from "./skill-repo";
 export * from "./workspace";
+// ----- M7 · Bookshelf -----
+export * from "./repositories/book-cover-repo";
+export * from "./repositories/chapter-origin-tag-repo";
+export * from "./repositories/chapter-log-repo";
+export * from "./repositories/chapter-snapshot-repo";
+export * from "./repositories/auto-writer-run-repo";
+// ----- M8 · 活人感 -----
+export * from "./repositories/achievement-repo";
+export * from "./repositories/character-letter-repo";

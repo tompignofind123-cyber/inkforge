@@ -51,6 +51,9 @@ importers:
         specifier: ^1.0.0
         version: 1.1.0
     devDependencies:
+      '@inkforge/auto-writer-engine':
+        specifier: workspace:*
+        version: link:../../packages/auto-writer-engine
       '@inkforge/editor':
         specifier: workspace:*
         version: link:../../packages/editor
@@ -132,6 +135,12 @@ importers:
       zustand:
         specifier: ^5.0.2
         version: 5.0.12(@types/react@18.3.28)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+
+  packages/auto-writer-engine:
+    dependencies:
+      '@inkforge/shared':
+        specifier: workspace:*
+        version: link:../shared
 
   packages/editor:
     dependencies:

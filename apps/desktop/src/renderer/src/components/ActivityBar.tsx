@@ -16,6 +16,9 @@ const ITEMS: NavItem[] = [
   { view: "world", icon: "🌍", label: "世界观", shortcut: "Ctrl+5" },
   { view: "research", icon: "📚", label: "资料", shortcut: "Ctrl+6" },
   { view: "review", icon: "📊", label: "审查", shortcut: "Ctrl+7" },
+  { view: "bookshelf", icon: "📖", label: "书房", shortcut: "Ctrl+8" },
+  { view: "letters", icon: "📬", label: "来信", shortcut: "Ctrl+9" },
+  { view: "achievement", icon: "🏆", label: "成就", shortcut: "Ctrl+0" },
 ];
 
 export function ActivityBar(): JSX.Element {

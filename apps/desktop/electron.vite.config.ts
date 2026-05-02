@@ -11,6 +11,7 @@ const workspaceExcludes = [
   "@inkforge/review-engine",
   "@inkforge/skill-engine",
   "@inkforge/tavern-engine",
+  "@inkforge/auto-writer-engine",
 ];
 
 export default defineConfig({
@@ -31,6 +32,10 @@ export default defineConfig({
         "@inkforge/review-engine": resolve(__dirname, "../../packages/review-engine/src/index.ts"),
         "@inkforge/skill-engine": resolve(__dirname, "../../packages/skill-engine/src/index.ts"),
         "@inkforge/tavern-engine": resolve(__dirname, "../../packages/tavern-engine/src/index.ts"),
+        "@inkforge/auto-writer-engine": resolve(
+          __dirname,
+          "../../packages/auto-writer-engine/src/index.ts",
+        ),
       },
     },
   },

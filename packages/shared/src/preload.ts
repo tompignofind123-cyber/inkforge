@@ -352,3 +352,151 @@ export interface InkforgeApi {
     health(input: ProviderKeyHealthInput): Promise<ProviderHealthSnapshot>;
   };
 }
+
+// =====================================================================
+// M7 · Bookshelf · 通过 interface declaration merging 扩展 InkforgeApi
+// 这一段每个 PR 增量补一块；本块由 PR-3 引入 snapshot 子接口。
+// =====================================================================
+import type {
+  SnapshotCreateInput,
+  SnapshotCreateResponse,
+  SnapshotDeleteInput,
+  SnapshotGetInput,
+  SnapshotGetResponse,
+  SnapshotListInput,
+  SnapshotRestoreInput,
+  SnapshotRestoreResponse,
+  // PR-4
+  BookCoverDeleteInput,
+  BookCoverGetInput,
+  BookCoverGetResponse,
+  BookCoverUploadInput,
+  BookCoverUploadResponse,
+  BookshelfListBooksResponse,
+  OriginTagGetInput,
+  OriginTagListByOriginInput,
+  OriginTagListByOriginResponse,
+  OriginTagSetInput,
+  // PR-5
+  ChapterLogAppendAiInput,
+  ChapterLogAppendManualInput,
+  ChapterLogDeleteInput,
+  ChapterLogListInput,
+  // PR-7
+  AutoWriterCorrectInput,
+  AutoWriterCorrectResponse,
+  AutoWriterGetRunInput,
+  AutoWriterInjectIdeaInput,
+  AutoWriterListRunsInput,
+  AutoWriterPauseInput,
+  AutoWriterResumeInput,
+  AutoWriterStartInput,
+  AutoWriterStartResponse,
+  AutoWriterStopInput,
+  AutoWriterStopResponse,
+} from "./ipc";
+import type {
+  ChapterSnapshotRecord,
+  ChapterOriginTagRecord,
+  ChapterLogEntryRecord,
+  AutoWriterRunRecord,
+} from "./domain";
+
+export interface InkforgeApi {
+  snapshot: {
+    create(input: SnapshotCreateInput): Promise<SnapshotCreateResponse>;
+    list(input: SnapshotListInput): Promise<ChapterSnapshotRecord[]>;
+    get(input: SnapshotGetInput): Promise<SnapshotGetResponse>;
+    restore(input: SnapshotRestoreInput): Promise<SnapshotRestoreResponse>;
+    delete(input: SnapshotDeleteInput): Promise<{ snapshotId: string }>;
+  };
+  bookshelf: {
+    listBooks(): Promise<BookshelfListBooksResponse>;
+  };
+  cover: {
+    upload(input: BookCoverUploadInput): Promise<BookCoverUploadResponse>;
+    get(input: BookCoverGetInput): Promise<BookCoverGetResponse>;
+    delete(input: BookCoverDeleteInput): Promise<{ projectId: string }>;
+  };
+  originTag: {
+    set(input: OriginTagSetInput): Promise<ChapterOriginTagRecord>;
+    get(input: OriginTagGetInput): Promise<ChapterOriginTagRecord | null>;
+    listByOrigin(input: OriginTagListByOriginInput): Promise<OriginTagListByOriginResponse>;
+  };
+  chapterLog: {
+    list(input: ChapterLogListInput): Promise<ChapterLogEntryRecord[]>;
+    appendManual(input: ChapterLogAppendManualInput): Promise<ChapterLogEntryRecord>;
+    appendAi(input: ChapterLogAppendAiInput): Promise<ChapterLogEntryRecord>;
+    delete(input: ChapterLogDeleteInput): Promise<{ entryId: string }>;
+    onReminder(listener: (payload: IpcEventMap["chapter-log:daily-reminder"]) => void): Unsubscribe;
+  };
+  autoWriter: {
+    start(input: AutoWriterStartInput): Promise<AutoWriterStartResponse>;
+    stop(input: AutoWriterStopInput): Promise<AutoWriterStopResponse>;
+    pause(input: AutoWriterPauseInput): Promise<AutoWriterRunRecord>;
+    resume(input: AutoWriterResumeInput): Promise<AutoWriterRunRecord>;
+    getRun(input: AutoWriterGetRunInput): Promise<AutoWriterRunRecord | null>;
+    listRuns(input: AutoWriterListRunsInput): Promise<AutoWriterRunRecord[]>;
+    injectIdea(input: AutoWriterInjectIdeaInput): Promise<AutoWriterRunRecord>;
+    correct(input: AutoWriterCorrectInput): Promise<AutoWriterCorrectResponse>;
+    onChunk(listener: (payload: IpcEventMap["auto-writer:chunk"]) => void): Unsubscribe;
+    onPhase(listener: (payload: IpcEventMap["auto-writer:phase"]) => void): Unsubscribe;
+    onDone(listener: (payload: IpcEventMap["auto-writer:done"]) => void): Unsubscribe;
+    onSnapshot(listener: (payload: IpcEventMap["auto-writer:snapshot"]) => void): Unsubscribe;
+  };
+  /**
+   * 自定义无边框 titlebar 用 —— 渲染端三个窗口按钮（最小化/最大化/关闭）
+   * 通过这组 API 操作 BrowserWindow，并订阅 maximize 状态变化以同步图标。
+   */
+  window: {
+    minimize(): Promise<{ ok: true }>;
+    toggleMaximize(): Promise<{ isMaximized: boolean }>;
+    close(): Promise<{ ok: true }>;
+    isMaximized(): Promise<{ isMaximized: boolean }>;
+    onMaximizedChanged(
+      listener: (payload: IpcEventMap["window:maximized-changed"]) => void,
+    ): Unsubscribe;
+  };
+}
+
+// =====================================================================
+// M8 · 活人感（Achievements + Letters）interface declaration merging
+// =====================================================================
+import type {
+  AchievementCheckInput,
+  AchievementCheckResponse,
+  AchievementListInput,
+  AchievementStatsResponse,
+  LetterDeleteInput,
+  LetterDismissInput,
+  LetterGenerateInput,
+  LetterListInput,
+  LetterMarkReadInput,
+  LetterPinInput,
+} from "./ipc";
+import type {
+  AchievementUnlockedRecord,
+  CharacterLetterRecord,
+} from "./domain";
+
+export interface InkforgeApi {
+  achievement: {
+    list(input: AchievementListInput): Promise<AchievementUnlockedRecord[]>;
+    check(input: AchievementCheckInput): Promise<AchievementCheckResponse>;
+    stats(input: { projectId: string }): Promise<AchievementStatsResponse>;
+    onUnlocked(
+      listener: (payload: IpcEventMap["achievement:unlocked"]) => void,
+    ): Unsubscribe;
+  };
+  letter: {
+    list(input: LetterListInput): Promise<CharacterLetterRecord[]>;
+    generate(input: LetterGenerateInput): Promise<CharacterLetterRecord>;
+    markRead(input: LetterMarkReadInput): Promise<{ letterId: string }>;
+    pin(input: LetterPinInput): Promise<{ letterId: string }>;
+    dismiss(input: LetterDismissInput): Promise<{ letterId: string }>;
+    delete(input: LetterDeleteInput): Promise<{ letterId: string }>;
+    onArrived(
+      listener: (payload: IpcEventMap["letter:arrived"]) => void,
+    ): Unsubscribe;
+  };
+}

@@ -304,3 +304,71 @@ export const reviewApi = {
   onProgress: (listener: (payload: import("@inkforge/shared").IpcEventMap["review:progress"]) => void) => api().review.onProgress(listener),
   onDone: (listener: (payload: import("@inkforge/shared").IpcEventMap["review:done"]) => void) => api().review.onDone(listener),
 };
+
+// ===== M7 · Bookshelf =====
+
+export const snapshotApi = {
+  create: (input: import("@inkforge/shared").SnapshotCreateInput): Promise<import("@inkforge/shared").SnapshotCreateResponse> => api().snapshot.create(input),
+  list: (input: import("@inkforge/shared").SnapshotListInput): Promise<import("@inkforge/shared").ChapterSnapshotRecord[]> => api().snapshot.list(input),
+  get: (input: import("@inkforge/shared").SnapshotGetInput): Promise<import("@inkforge/shared").SnapshotGetResponse> => api().snapshot.get(input),
+  restore: (input: import("@inkforge/shared").SnapshotRestoreInput): Promise<import("@inkforge/shared").SnapshotRestoreResponse> => api().snapshot.restore(input),
+  delete: (input: import("@inkforge/shared").SnapshotDeleteInput): Promise<{ snapshotId: string }> => api().snapshot.delete(input),
+};
+
+export const bookshelfApi = {
+  listBooks: (): Promise<import("@inkforge/shared").BookshelfListBooksResponse> => api().bookshelf.listBooks(),
+};
+
+export const coverApi = {
+  upload: (input: import("@inkforge/shared").BookCoverUploadInput): Promise<import("@inkforge/shared").BookCoverUploadResponse> => api().cover.upload(input),
+  get: (input: import("@inkforge/shared").BookCoverGetInput): Promise<import("@inkforge/shared").BookCoverGetResponse> => api().cover.get(input),
+  delete: (input: import("@inkforge/shared").BookCoverDeleteInput): Promise<{ projectId: string }> => api().cover.delete(input),
+};
+
+export const originTagApi = {
+  set: (input: import("@inkforge/shared").OriginTagSetInput): Promise<import("@inkforge/shared").ChapterOriginTagRecord> => api().originTag.set(input),
+  get: (input: import("@inkforge/shared").OriginTagGetInput): Promise<import("@inkforge/shared").ChapterOriginTagRecord | null> => api().originTag.get(input),
+  listByOrigin: (input: import("@inkforge/shared").OriginTagListByOriginInput): Promise<import("@inkforge/shared").OriginTagListByOriginResponse> => api().originTag.listByOrigin(input),
+};
+
+export const chapterLogApi = {
+  list: (input: import("@inkforge/shared").ChapterLogListInput): Promise<import("@inkforge/shared").ChapterLogEntryRecord[]> => api().chapterLog.list(input),
+  appendManual: (input: import("@inkforge/shared").ChapterLogAppendManualInput): Promise<import("@inkforge/shared").ChapterLogEntryRecord> => api().chapterLog.appendManual(input),
+  appendAi: (input: import("@inkforge/shared").ChapterLogAppendAiInput): Promise<import("@inkforge/shared").ChapterLogEntryRecord> => api().chapterLog.appendAi(input),
+  delete: (input: import("@inkforge/shared").ChapterLogDeleteInput): Promise<{ entryId: string }> => api().chapterLog.delete(input),
+  onReminder: (listener: (payload: import("@inkforge/shared").IpcEventMap["chapter-log:daily-reminder"]) => void) => api().chapterLog.onReminder(listener),
+};
+
+export const autoWriterApi = {
+  start: (input: import("@inkforge/shared").AutoWriterStartInput): Promise<import("@inkforge/shared").AutoWriterStartResponse> => api().autoWriter.start(input),
+  stop: (input: import("@inkforge/shared").AutoWriterStopInput): Promise<import("@inkforge/shared").AutoWriterStopResponse> => api().autoWriter.stop(input),
+  pause: (input: import("@inkforge/shared").AutoWriterPauseInput): Promise<import("@inkforge/shared").AutoWriterRunRecord> => api().autoWriter.pause(input),
+  resume: (input: import("@inkforge/shared").AutoWriterResumeInput): Promise<import("@inkforge/shared").AutoWriterRunRecord> => api().autoWriter.resume(input),
+  getRun: (input: import("@inkforge/shared").AutoWriterGetRunInput): Promise<import("@inkforge/shared").AutoWriterRunRecord | null> => api().autoWriter.getRun(input),
+  listRuns: (input: import("@inkforge/shared").AutoWriterListRunsInput): Promise<import("@inkforge/shared").AutoWriterRunRecord[]> => api().autoWriter.listRuns(input),
+  injectIdea: (input: import("@inkforge/shared").AutoWriterInjectIdeaInput): Promise<import("@inkforge/shared").AutoWriterRunRecord> => api().autoWriter.injectIdea(input),
+  correct: (input: import("@inkforge/shared").AutoWriterCorrectInput): Promise<import("@inkforge/shared").AutoWriterCorrectResponse> => api().autoWriter.correct(input),
+  onChunk: (listener: (payload: import("@inkforge/shared").IpcEventMap["auto-writer:chunk"]) => void) => api().autoWriter.onChunk(listener),
+  onPhase: (listener: (payload: import("@inkforge/shared").IpcEventMap["auto-writer:phase"]) => void) => api().autoWriter.onPhase(listener),
+  onDone: (listener: (payload: import("@inkforge/shared").IpcEventMap["auto-writer:done"]) => void) => api().autoWriter.onDone(listener),
+  onSnapshot: (listener: (payload: import("@inkforge/shared").IpcEventMap["auto-writer:snapshot"]) => void) => api().autoWriter.onSnapshot(listener),
+};
+
+// ----- M8 · Achievements -----
+export const achievementApi = {
+  list: (input: import("@inkforge/shared").AchievementListInput): Promise<import("@inkforge/shared").AchievementUnlockedRecord[]> => api().achievement.list(input),
+  check: (input: import("@inkforge/shared").AchievementCheckInput): Promise<import("@inkforge/shared").AchievementCheckResponse> => api().achievement.check(input),
+  stats: (input: { projectId: string }): Promise<import("@inkforge/shared").AchievementStatsResponse> => api().achievement.stats(input),
+  onUnlocked: (listener: (payload: import("@inkforge/shared").IpcEventMap["achievement:unlocked"]) => void) => api().achievement.onUnlocked(listener),
+};
+
+// ----- M8 · Letters -----
+export const letterApi = {
+  list: (input: import("@inkforge/shared").LetterListInput): Promise<import("@inkforge/shared").CharacterLetterRecord[]> => api().letter.list(input),
+  generate: (input: import("@inkforge/shared").LetterGenerateInput): Promise<import("@inkforge/shared").CharacterLetterRecord> => api().letter.generate(input),
+  markRead: (input: import("@inkforge/shared").LetterMarkReadInput): Promise<{ letterId: string }> => api().letter.markRead(input),
+  pin: (input: import("@inkforge/shared").LetterPinInput): Promise<{ letterId: string }> => api().letter.pin(input),
+  dismiss: (input: import("@inkforge/shared").LetterDismissInput): Promise<{ letterId: string }> => api().letter.dismiss(input),
+  delete: (input: import("@inkforge/shared").LetterDeleteInput): Promise<{ letterId: string }> => api().letter.delete(input),
+  onArrived: (listener: (payload: import("@inkforge/shared").IpcEventMap["letter:arrived"]) => void) => api().letter.onArrived(listener),
+};

@@ -210,6 +210,72 @@ const api: InkforgeApi = {
     setDisabled: (input) => ipcRenderer.invoke(ipcChannels.providerKeySetDisabled, input),
     health: (input) => ipcRenderer.invoke(ipcChannels.providerKeyHealth, input),
   },
+  // ----- M7 · Bookshelf -----
+  snapshot: {
+    create: (input) => ipcRenderer.invoke(ipcChannels.snapshotCreate, input),
+    list: (input) => ipcRenderer.invoke(ipcChannels.snapshotList, input),
+    get: (input) => ipcRenderer.invoke(ipcChannels.snapshotGet, input),
+    restore: (input) => ipcRenderer.invoke(ipcChannels.snapshotRestore, input),
+    delete: (input) => ipcRenderer.invoke(ipcChannels.snapshotDelete, input),
+  },
+  bookshelf: {
+    listBooks: () => ipcRenderer.invoke(ipcChannels.bookshelfListBooks),
+  },
+  cover: {
+    upload: (input) => ipcRenderer.invoke(ipcChannels.bookCoverUpload, input),
+    get: (input) => ipcRenderer.invoke(ipcChannels.bookCoverGet, input),
+    delete: (input) => ipcRenderer.invoke(ipcChannels.bookCoverDelete, input),
+  },
+  originTag: {
+    set: (input) => ipcRenderer.invoke(ipcChannels.originTagSet, input),
+    get: (input) => ipcRenderer.invoke(ipcChannels.originTagGet, input),
+    listByOrigin: (input) => ipcRenderer.invoke(ipcChannels.originTagListByOrigin, input),
+  },
+  chapterLog: {
+    list: (input) => ipcRenderer.invoke(ipcChannels.chapterLogList, input),
+    appendManual: (input) => ipcRenderer.invoke(ipcChannels.chapterLogAppendManual, input),
+    appendAi: (input) => ipcRenderer.invoke(ipcChannels.chapterLogAppendAi, input),
+    delete: (input) => ipcRenderer.invoke(ipcChannels.chapterLogDelete, input),
+    onReminder: (listener) => subscribe(ipcEventChannels.chapterLogReminder, listener),
+  },
+  autoWriter: {
+    start: (input) => ipcRenderer.invoke(ipcChannels.autoWriterStart, input),
+    stop: (input) => ipcRenderer.invoke(ipcChannels.autoWriterStop, input),
+    pause: (input) => ipcRenderer.invoke(ipcChannels.autoWriterPause, input),
+    resume: (input) => ipcRenderer.invoke(ipcChannels.autoWriterResume, input),
+    getRun: (input) => ipcRenderer.invoke(ipcChannels.autoWriterGetRun, input),
+    listRuns: (input) => ipcRenderer.invoke(ipcChannels.autoWriterListRuns, input),
+    injectIdea: (input) => ipcRenderer.invoke(ipcChannels.autoWriterInjectIdea, input),
+    correct: (input) => ipcRenderer.invoke(ipcChannels.autoWriterCorrect, input),
+    onChunk: (listener) => subscribe(ipcEventChannels.autoWriterChunk, listener),
+    onPhase: (listener) => subscribe(ipcEventChannels.autoWriterPhase, listener),
+    onDone: (listener) => subscribe(ipcEventChannels.autoWriterDone, listener),
+    onSnapshot: (listener) => subscribe(ipcEventChannels.autoWriterSnapshot, listener),
+  },
+  window: {
+    minimize: () => ipcRenderer.invoke(ipcChannels.windowMinimize),
+    toggleMaximize: () => ipcRenderer.invoke(ipcChannels.windowToggleMaximize),
+    close: () => ipcRenderer.invoke(ipcChannels.windowClose),
+    isMaximized: () => ipcRenderer.invoke(ipcChannels.windowIsMaximized),
+    onMaximizedChanged: (listener) =>
+      subscribe(ipcEventChannels.windowMaximizedChanged, listener),
+  },
+  achievement: {
+    list: (input) => ipcRenderer.invoke(ipcChannels.achievementList, input),
+    check: (input) => ipcRenderer.invoke(ipcChannels.achievementCheck, input),
+    stats: (input) => ipcRenderer.invoke(ipcChannels.achievementStats, input),
+    onUnlocked: (listener) =>
+      subscribe(ipcEventChannels.achievementUnlocked, listener),
+  },
+  letter: {
+    list: (input) => ipcRenderer.invoke(ipcChannels.letterList, input),
+    generate: (input) => ipcRenderer.invoke(ipcChannels.letterGenerate, input),
+    markRead: (input) => ipcRenderer.invoke(ipcChannels.letterMarkRead, input),
+    pin: (input) => ipcRenderer.invoke(ipcChannels.letterPin, input),
+    dismiss: (input) => ipcRenderer.invoke(ipcChannels.letterDismiss, input),
+    delete: (input) => ipcRenderer.invoke(ipcChannels.letterDelete, input),
+    onArrived: (listener) => subscribe(ipcEventChannels.letterArrived, listener),
+  },
 };
 
 try {

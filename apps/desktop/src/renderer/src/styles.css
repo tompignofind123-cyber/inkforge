@@ -77,3 +77,42 @@ button:disabled {
 [role="dialog"] {
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
 }
+
+/* ===== M8 · 桌宠 Companion 动画 ===== */
+@keyframes companion-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2px); }
+}
+
+@keyframes companion-jump {
+  0%, 100% { transform: translateY(0) scale(1); }
+  30%      { transform: translateY(-8px) scale(1.05, 0.95); }
+  60%      { transform: translateY(-3px) scale(0.97, 1.03); }
+}
+
+@keyframes companion-breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.025); }
+}
+
+@keyframes companion-bubble-in {
+  0%   { opacity: 0; transform: translateY(6px) scale(0.96); }
+  60%  { opacity: 1; }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes companion-dizzy {
+  0%   { transform: rotate(0deg) translateY(0); }
+  25%  { transform: rotate(8deg) translateY(-1px); }
+  50%  { transform: rotate(0deg) translateY(0); }
+  75%  { transform: rotate(-8deg) translateY(1px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+
+@keyframes companion-particle-float {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.85; }
+  50%  { transform: translate(8px, -36px) rotate(180deg); opacity: 0.9; }
+  90%  { opacity: 0.6; }
+  100% { transform: translate(-6px, -68px) rotate(360deg); opacity: 0; }
+}

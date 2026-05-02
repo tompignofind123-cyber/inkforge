@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { providerApi, projectApi, settingsApi } from "./lib/api";
+import { dailyApi, providerApi, projectApi, settingsApi } from "./lib/api";
 import { useAppStore } from "./stores/app-store";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { WorkspacePage } from "./pages/WorkspacePage";
@@ -11,6 +11,13 @@ import { WorldPage } from "./pages/WorldPage";
 import { ResearchPage } from "./pages/ResearchPage";
 import { ReviewPage } from "./pages/ReviewPage";
 import { ActivityBar } from "./components/ActivityBar";
+import { AchievementHallPage } from "./pages/AchievementHallPage";
+import { LetterInboxPage } from "./pages/LetterInboxPage";
+import { AchievementToast } from "./components/achievement";
+import { BookshelfPage } from "./components/bookshelf";
+import { Companion } from "./components/companion";
+import { ReminderToast } from "./components/log";
+import { TitleBar } from "./components/titlebar";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { CrashRecoveryBanner } from "./components/CrashRecoveryBanner";
 
@@ -19,6 +26,7 @@ export function App(): JSX.Element {
   const settings = useAppStore((s) => s.settings);
   const settingsLoaded = useAppStore((s) => s.settingsLoaded);
   const mainView = useAppStore((s) => s.mainView);
+  const currentProjectId = useAppStore((s) => s.currentProjectId);
   const lang = settings.uiLanguage;
 
   const settingsQuery = useQuery({
@@ -66,8 +74,11 @@ export function App(): JSX.Element {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center text-ink-300">
-        <div className="animate-pulse">正在打开 InkForge…</div>
+      <div className="flex h-full w-full flex-col">
+        <TitleBar />
+        <div className="flex flex-1 items-center justify-center text-ink-300">
+          <div className="animate-pulse">正在打开 InkForge…</div>
+        </div>
       </div>
     );
   }
@@ -75,7 +86,12 @@ export function App(): JSX.Element {
   if (!onboarded) {
     return (
       <ErrorBoundary label="Onboarding" lang={lang}>
-        <OnboardingPage onFinish={() => setOnboarded(true)} />
+        <div className="flex h-full w-full flex-col">
+          <TitleBar />
+          <div className="min-h-0 flex-1">
+            <OnboardingPage onFinish={() => setOnboarded(true)} />
+          </div>
+        </div>
       </ErrorBoundary>
     );
   }
@@ -83,7 +99,10 @@ export function App(): JSX.Element {
   return (
     <ErrorBoundary label="InkForge" lang={lang}>
       <div className="flex h-full w-full flex-col">
+        <TitleBar />
         <CrashRecoveryBanner />
+        <ReminderToast />
+        <AchievementToast />
         <div className="flex min-h-0 flex-1">
           <ErrorBoundary label="ActivityBar" lang={lang}>
             <ActivityBar />
@@ -97,10 +116,33 @@ export function App(): JSX.Element {
               {mainView === "world" && <WorldPage />}
               {mainView === "research" && <ResearchPage />}
               {mainView === "review" && <ReviewPage />}
+              {mainView === "bookshelf" && <BookshelfPage />}
+              {mainView === "achievement" && <AchievementHallPage />}
+              {mainView === "letters" && <LetterInboxPage />}
             </ErrorBoundary>
           </div>
         </div>
+        <CompanionMount projectId={currentProjectId ?? null} />
       </div>
     </ErrorBoundary>
   );
+}
+
+/**
+ * Companion 包装：根据 currentProjectId 拉今日字数判断是否达成日目标。
+ * 抽离避免 App 组件下方再加一个 useQuery 让顶层代码冗长。
+ */
+function CompanionMount({ projectId }: { projectId: string | null }): JSX.Element {
+  const dailyQuery = useQuery({
+    queryKey: ["daily-progress", projectId],
+    queryFn: () => dailyApi.progress({ projectId: projectId ?? "" }),
+    enabled: !!projectId,
+    refetchInterval: 30_000,
+  });
+  const dailyAchieved = (() => {
+    const r = dailyQuery.data;
+    if (!r) return false;
+    return r.goalHit;
+  })();
+  return <Companion dailyAchieved={dailyAchieved} />;
 }

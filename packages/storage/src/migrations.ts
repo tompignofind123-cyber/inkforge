@@ -481,6 +481,166 @@ const migrations: Migration[] = [
       );
     },
   },
+  {
+    // ===================================================================
+    // M7 · Bookshelf Module
+    // 6 张全新表，承载：书籍封面 / 章节来源标签 / 每章独立日志（含条目）
+    // / 章节快照（细粒度撤回）/ AutoWriter 运行记录。
+    // 不修改任何现有表 DDL；旧用户数据 100% 兼容。
+    // ===================================================================
+    version: 14,
+    name: "m7_bookshelf_tables",
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS book_covers (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          file_path TEXT NOT NULL,
+          mime TEXT NOT NULL,
+          uploaded_at TEXT NOT NULL,
+          FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS uidx_book_covers_project
+          ON book_covers(project_id);
+
+        CREATE TABLE IF NOT EXISTS chapter_origin_tags (
+          chapter_id TEXT PRIMARY KEY,
+          origin TEXT NOT NULL CHECK(origin IN ('ai-auto','ai-assisted','manual')),
+          tagged_at TEXT NOT NULL,
+          FOREIGN KEY(chapter_id) REFERENCES chapters(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_chapter_origin_tags_origin
+          ON chapter_origin_tags(origin);
+
+        CREATE TABLE IF NOT EXISTS chapter_logs (
+          id TEXT PRIMARY KEY,
+          chapter_id TEXT NOT NULL UNIQUE,
+          project_id TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY(chapter_id) REFERENCES chapters(id) ON DELETE CASCADE,
+          FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_chapter_logs_project
+          ON chapter_logs(project_id);
+
+        CREATE TABLE IF NOT EXISTS chapter_log_entries (
+          id TEXT PRIMARY KEY,
+          log_id TEXT NOT NULL,
+          chapter_id TEXT NOT NULL,
+          kind TEXT NOT NULL CHECK(kind IN ('progress','ai-run','manual','daily-reminder')),
+          author TEXT NOT NULL CHECK(author IN ('user','ai')),
+          content TEXT NOT NULL,
+          metadata TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(metadata)),
+          created_at TEXT NOT NULL,
+          FOREIGN KEY(log_id) REFERENCES chapter_logs(id) ON DELETE CASCADE,
+          FOREIGN KEY(chapter_id) REFERENCES chapters(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_chapter_log_entries_chapter_created
+          ON chapter_log_entries(chapter_id, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS chapter_snapshots (
+          id TEXT PRIMARY KEY,
+          chapter_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          kind TEXT NOT NULL
+            CHECK(kind IN ('manual','pre-ai','post-ai','pre-rewrite','pre-restore','auto-periodic')),
+          label TEXT,
+          content_hash TEXT NOT NULL,
+          file_path TEXT NOT NULL,
+          word_count INTEGER NOT NULL DEFAULT 0 CHECK(word_count >= 0),
+          run_id TEXT,
+          agent_role TEXT
+            CHECK(agent_role IS NULL OR agent_role IN ('planner','writer','critic','reflector')),
+          source_message_id TEXT,
+          created_at TEXT NOT NULL,
+          FOREIGN KEY(chapter_id) REFERENCES chapters(id) ON DELETE CASCADE,
+          FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_chapter_snapshots_chapter_created
+          ON chapter_snapshots(chapter_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_chapter_snapshots_run
+          ON chapter_snapshots(run_id);
+
+        CREATE TABLE IF NOT EXISTS auto_writer_runs (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          chapter_id TEXT NOT NULL,
+          status TEXT NOT NULL
+            CHECK(status IN ('running','paused','completed','failed','stopped')),
+          user_ideas TEXT NOT NULL DEFAULT '',
+          user_corrections TEXT NOT NULL DEFAULT '[]'
+            CHECK(json_valid(user_corrections)),
+          agents_config TEXT NOT NULL DEFAULT '[]'
+            CHECK(json_valid(agents_config)),
+          outline_json TEXT,
+          stats_json TEXT NOT NULL DEFAULT '{}'
+            CHECK(json_valid(stats_json)),
+          last_snapshot_id TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+          FOREIGN KEY(chapter_id) REFERENCES chapters(id) ON DELETE CASCADE,
+          FOREIGN KEY(last_snapshot_id) REFERENCES chapter_snapshots(id) ON DELETE SET NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_auto_writer_runs_chapter
+          ON auto_writer_runs(chapter_id, created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_auto_writer_runs_project
+          ON auto_writer_runs(project_id, created_at DESC);
+      `);
+    },
+  },
+  {
+    // ===================================================================
+    // M8 · 活人感套装（Companion + 成就 + 角色来信）
+    // 2 张新表（桌宠为纯前端 localStorage，无表）：
+    //   - achievements_unlocked: 成就解锁记录（按 project + achievement_id 唯一）
+    //   - character_letters: 角色来信（笔下人物 AI 写给作者的"信件"）
+    // 不修改任何现有表 DDL；旧用户数据 100% 兼容。
+    // ===================================================================
+    version: 15,
+    name: "m8_lively_companion_achievements_letters",
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS achievements_unlocked (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          achievement_id TEXT NOT NULL,
+          unlocked_at TEXT NOT NULL,
+          metadata TEXT NOT NULL DEFAULT '{}'
+            CHECK(json_valid(metadata)),
+          FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+        CREATE UNIQUE INDEX IF NOT EXISTS uidx_achievements_project_aid
+          ON achievements_unlocked(project_id, achievement_id);
+        CREATE INDEX IF NOT EXISTS idx_achievements_project_unlocked
+          ON achievements_unlocked(project_id, unlocked_at DESC);
+
+        CREATE TABLE IF NOT EXISTS character_letters (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          character_id TEXT NOT NULL,
+          subject TEXT NOT NULL,
+          body TEXT NOT NULL,
+          tone TEXT NOT NULL DEFAULT 'neutral'
+            CHECK(tone IN ('grateful','complaint','curious','encouraging','neutral')),
+          generated_at TEXT NOT NULL,
+          read INTEGER NOT NULL DEFAULT 0,
+          pinned INTEGER NOT NULL DEFAULT 0,
+          dismissed INTEGER NOT NULL DEFAULT 0,
+          provider_id TEXT,
+          model TEXT,
+          tokens_in INTEGER NOT NULL DEFAULT 0,
+          tokens_out INTEGER NOT NULL DEFAULT 0,
+          FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+          FOREIGN KEY(character_id) REFERENCES characters(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_character_letters_project_generated
+          ON character_letters(project_id, generated_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_character_letters_character
+          ON character_letters(character_id, generated_at DESC);
+      `);
+    },
+  },
 ];
 
 export function runMigrations(db: DB): number {

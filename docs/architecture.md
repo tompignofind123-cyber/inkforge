@@ -255,3 +255,123 @@ pnpm --filter @inkforge/desktop run bench:storage
 - M3 细案：[novel-writing-app-m3.md](../C:/Users/123/.claude/plan/novel-writing-app-m3.md)
 - M4 细案：[novel-writing-app-m4.md](../C:/Users/123/.claude/plan/novel-writing-app-m4.md)
 - M5 细案：[novel-writing-app-m5.md](../C:/Users/123/.claude/plan/novel-writing-app-m5.md)
+- M7 细案：[shiny-booping-honey.md](../C:/Users/123/.claude/plans/shiny-booping-honey.md)（书房 + AutoWriter + 快照 + 章节日志）
+
+---
+
+## 9. M7 · Bookshelf 模块（书房 / AutoWriter / 章节日志 / 快照）
+
+> **零侵入扩展**。所有现有功能、表、IPC channel、UI 完全保留——下面所有内容都是新增。
+
+### 9.1 模块全景
+
+```
+ActivityBar
+  └─ 📖 书房 (mainView='bookshelf')
+       └─ /bookshelf 路由 → BookshelfPage
+            ├─ BookTabsBar           多本书并存（zustand persist localStorage）
+            ├─ BookHeader            封面 + 统计 + 三类来源计数
+            ├─ ChapterOriginTabs     [全部 / AI 全自动 / AI 陪写 / 我手写]
+            └─ ChapterListItem
+                 ├─ 来源切换         origin_tag 即时写入
+                 ├─ 🤖 AI 写         → AutoWriterPanel
+                 ├─ 📓 日志          → ChapterLogDrawer
+                 └─ ↶ 快照           → SnapshotMenu
+```
+
+ReminderToast 在 App.tsx 顶层挂载——监听 `chapter-log:daily-reminder` 事件，每日 12:00 提醒写日志。
+
+### 9.2 数据层（迁移 v14，6 张新表）
+
+| 表 | 用途 | 关键约束 |
+| --- | --- | --- |
+| `book_covers` | 每本书一个封面，文件落 `<project>/.bookshelf/cover.<ext>` | UNIQUE(project_id) |
+| `chapter_origin_tags` | 章节来源逻辑标签（`ai-auto` / `ai-assisted` / `manual`） | PRIMARY KEY(chapter_id)；旧章节默认按 `manual` 渲染 |
+| `chapter_logs` + `chapter_log_entries` | 每章独立日志（`progress` / `ai-run` / `manual` / `daily-reminder` × `user` / `ai`） | UNIQUE(chapter_id) on chapter_logs |
+| `chapter_snapshots` | 细粒度快照，文件落 `<project>/.history/snapshots/<chapId>/<id>.md` | kind ∈ manual / pre-ai / post-ai / pre-rewrite / pre-restore / auto-periodic |
+| `auto_writer_runs` | AutoWriter 一次运行的元数据 + 用户介入累积 | 同章节同时只允许一个 'running'/'paused' run |
+
+迁移幂等：所有 DDL 用 `CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS`。
+
+### 9.3 多 Agent 协作引擎：`@inkforge/auto-writer-engine`
+
+纯逻辑包（无 Electron / 无 IPC / 无 DB），通过 DI 接入主进程：
+
+```
+PipelineDeps
+  ├─ invokeAgent(role, system, user, onDelta) → {text, tokensIn, tokensOut}
+  ├─ createSnapshot(kind, segmentIndex, chapterText)
+  ├─ applyChapterContent(chapterText)        ← 章节文件 + DB 行覆盖
+  ├─ runOocGate(...)                          ← 段落级人物 / 世界观启发式校验
+  ├─ drainInterrupts() → AutoWriterCorrectionEntry[]
+  ├─ emitPhase / isCancelled / isPaused
+```
+
+主循环（每个 beat）：
+
+```
+pre-ai snapshot
+  → Writer 写本段
+  → applyChapterContent (实时落地)
+  → post-ai snapshot
+  → Critic 审稿 + runOocGate
+     ↓ 阈值判定
+     ├─ shouldRewriteFromFindings && rewriteCount < max
+     │     → pre-rewrite snapshot → 回滚到 pre-ai → 回 Writer
+     └─ pass / 重写次数耗尽
+           → Reflector 写改进备忘 → 进入下一 beat
+```
+
+**共享上下文**：`userIdeas + chapterSoFar + characters + worldEntries + lastCriticFindings + reflectorMemo + drainedInterrupts`。
+**Critic 阈值**：1 条 `error` 或 ≥2 条 `warn` 触发回炉；重写上限默认 3 次。
+**模型绑定**：默认统一一个 Writer binding（其他 3 角色复用），高级用户可分别绑定。
+
+### 9.4 IPC channel 列表（新增 24 个 request + 5 个 event）
+
+| 分组 | request | event |
+| --- | --- | --- |
+| Bookshelf | `bookshelf:list-books`, `book-cover:upload/get/delete` | — |
+| Origin Tag | `origin-tag:set/get/list-by-origin` | — |
+| Chapter Log | `chapter-log:list/append-manual/append-ai/delete` | `chapter-log:daily-reminder` |
+| AutoWriter | `auto-writer:start/stop/pause/resume/get-run/list-runs/inject-idea/correct` | `auto-writer:chunk/phase/done/snapshot` |
+| Snapshot | `snapshot:create/list/get/restore/delete` | — |
+
+所有契约在 `packages/shared/src/ipc.ts` 用 interface declaration merging 扩展 `IpcRequestMap` / `IpcEventMap`，不修改既有键顺序。
+
+### 9.5 文件系统约定
+
+```
+<project>/
+├─ chapters/                  ← 现有，不动
+├─ characters/                ← 现有，不动
+├─ world/                     ← 现有，不动
+├─ .history/                  ← 现有，autosave 已用
+│   ├─ .autosave-<chapId>.md  ← 现有 5s 旁挂
+│   └─ snapshots/             ← 🆕 M7
+│       └─ <chapId>/
+│           └─ <snapId>.md    ← 单条快照内容
+└─ .bookshelf/                ← 🆕 M7
+    └─ cover.<png|jpg|webp>
+```
+
+### 9.6 验收
+
+```bash
+pnpm --filter @inkforge/desktop run verify:auto-writer
+# 41 项断言：findings parse 容错（8）+ 重写阈值（6）+ 计数（3）
+#         + markdown 渲染（5）+ role resolver（8）+ prompt builder（11）
+
+pnpm --filter @inkforge/desktop run verify:all
+# 全套：26 表 + 30 索引 + 14 迁移版本 + 7 个 verify suite
+```
+
+### 9.7 风险与权衡
+
+| 风险 | 缓解 |
+| --- | --- |
+| 细粒度快照磁盘膨胀 | `pruneOldAutoSnapshots(keepN=50)`；手动 + pre-restore 永不清理 |
+| AutoWriter 与 5s autosave 冲突 | 物理隔离（`.bookshelf/` vs `.history/.autosave-*.md`）；AutoWriter 走 `chapter:update` 主路径 |
+| Critic 假阳性死循环 | 单段 ≤3 次重写，超出抛 finding 让用户裁决 |
+| 多 Tab 内存占用 | Bookshelf store 上限 5 本 Tab；超出自动淘汰最旧 |
+| 老用户不需要新功能 | ActivityBar 默认显示但单独可隐藏；不进入 `/bookshelf` 路由代码完全不触达 |
+| 旧章节没 origin tag | 视图层 fallback 显示为 `manual`；origin-tag 表的 listByOrigin 在 origin='manual' 时默认包含未打标章节 |
