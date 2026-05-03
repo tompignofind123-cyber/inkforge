@@ -9,8 +9,8 @@
 <p>
   <a href="https://github.com/tompignofind123-cyber/inkforge/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/tompignofind123-cyber/inkforge/ci.yml?branch=main&label=CI&logo=github" alt="CI"></a>
   <a href="https://github.com/tompignofind123-cyber/inkforge/releases"><img src="https://img.shields.io/github/v/release/tompignofind123-cyber/inkforge?include_prereleases&color=ff7e3d" alt="Release"></a>
-  <img src="https://img.shields.io/badge/typecheck-17%2F17-3aa676" alt="typecheck">
-  <img src="https://img.shields.io/badge/verify-92%20assertions-3aa676" alt="verify">
+  <img src="https://img.shields.io/badge/typecheck-18%2F18-3aa676" alt="typecheck">
+  <img src="https://img.shields.io/badge/verify-150%2B%20assertions-3aa676" alt="verify">
   <img src="https://img.shields.io/badge/platform-Win%20%7C%20macOS%20%7C%20Linux-8a9bb8" alt="platforms">
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-3a82f6" alt="license"></a>
   <img src="https://img.shields.io/badge/electron-32-9feaf9" alt="electron">
@@ -39,6 +39,10 @@
 - **多模型并用**：Claude · OpenAI · Gemini · 任意 OpenAI 兼容端点；每个 Skill / 角色卡可独立绑定
 - **可编程**：Skill = prompt + 触发规则 + 模型绑定 + 模板变量，导入导出都是 JSON
 - **多角色同台**：酒馆舞台支持多 AI 角色按议题讨论，自带 token 预算与摘要压缩
+- **多书并存**：书房（Bookshelf）模块支持同时打开多本书，每本独立封面、章节按来源（手写 / AI 陪写 / AI 全自动）分类
+- **AI 全自动写小说**：AutoWriter 4-Agent 流水线（Planner → Writer → Critic → Reflector），共享人物/世界观上下文，OOC 守门员把关；用户只需「给思路 + 纠错」
+- **可撤的 AI 修改**：每段 AI 写作前后自动打快照，回滚自身也再打一次，永远能反悔
+- **桌宠 + 成就 + 角色来信**：陪伴系桌宠（番茄钟 / 节日装饰 / Konami 彩蛋）+ 29 项写作成就 + AI 让书中人物给作者写信
 - **数据自治**：SQLite + Markdown 落本地工作目录，可 Git 可 Obsidian；**应用不调任何上报端点**
 
 > 💡 InkForge 不是在线服务，没有账号系统，没有云同步，也没有遥测。它是一个把 LLM 当成"协作者"而非"对话框"的本地 IDE。
@@ -89,6 +93,34 @@
   <td><b>Skill 市场</b></td>
   <td>拉取 registry · 一键安装 · 发布向导（skill.json + PR 说明）</td>
 </tr>
+<tr>
+  <td><b>📖 书房 (M7)</b></td>
+  <td>多本书并存（zustand persist）· 标签页切换 · 书架网格 · 每本独立封面（PNG/JPG/WEBP/GIF ≤2 MB）· 章节按来源 4 Tab 过滤（全部 / AI 全自动 / AI 陪写 / 我手写）</td>
+</tr>
+<tr>
+  <td><b>🤖 AutoWriter (M7)</b></td>
+  <td>4-Agent 流水线：Planner（拆 beats）→ Writer（写段落）→ Critic（OOC / 一致性 / 风格 findings）→ Reflector（更新长期记忆）<br/>共享上下文：人物档案 + 世界观 + 已写正文 + 用户介入；段落级 OOC 守门员 + 单段重写上限<br/>可暂停 / 恢复 / 停止 / 注入新思路 / 实时纠错；默认统一模型，高级可为每个角色单独绑模型</td>
+</tr>
+<tr>
+  <td><b>📓 章节日志 (M7)</b></td>
+  <td>每章一份独立日志，4 种触发：完成进度自动 / AutoWriter 结束自动 / 手动随时记录 / 每日 12:00 提醒；条目可由用户或 AI 写入</td>
+</tr>
+<tr>
+  <td><b>↶ 章节快照 (M7)</b></td>
+  <td>每段 AI 写完前后自动打快照（pre-ai / post-ai / pre-rewrite）· 用户可手动备份命名 · 还原时再打 <code>pre-restore</code> 快照让还原本身也可撤 · 自动快照保留最近 50 条，手动快照永不清理</td>
+</tr>
+<tr>
+  <td><b>🐾 桌宠 (M8)</b></td>
+  <td>悬浮桌宠（多种宠物 + 自定义命名）· 状态机：idle / typing / sleepy / cheering / petted / dizzy / wishing / midnight<br/>双击启停番茄钟（25/5）· Alt+Click 调出 AI 闲聊 · 长按抚摸 · 心情自然衰减<br/>节日自动佩戴装饰（春节 / 中秋 / 情人节 / 万圣节 / 圣诞 / 新年 / 用户生日）· Konami code 解锁彩虹皮 · 11:11 许愿模式 · 季节粒子</td>
+</tr>
+<tr>
+  <td><b>🏆 成就大厅 (M8)</b></td>
+  <td>29 项内置成就 · 4 稀有度（common / rare / epic / legendary）· 6 类别（milestone / rhythm / character / world / ai / craft）<br/>触发与字数 / 章节数 / 连续日 / AutoWriter 跑次 / 角色信件 / 快照次数 等挂钩 · 解锁即弹 toast</td>
+</tr>
+<tr>
+  <td><b>💌 角色来信 (M8)</b></td>
+  <td>书中人物以第一人称给作者写信 · 5 种语气（感激 / 抱怨 / 好奇 / 鼓励 / 日常）· 收件箱 UI（已读 / 置顶 / 删除）· 严格 JSON 输出 + 人设注入</td>
+</tr>
 </table>
 
 ---
@@ -116,7 +148,7 @@ git clone https://github.com/tompignofind123-cyber/inkforge.git
 cd inkforge
 
 pnpm install
-pnpm typecheck                 # turbo 全包检查 (17/17)
+pnpm typecheck                 # turbo 全包检查 (18/18)
 pnpm icons                     # 从 SVG 重新生成 .ico / .png 图标
 pnpm --filter @inkforge/desktop dev          # 开发模式
 pnpm --filter @inkforge/desktop run dist:win # 打包 Windows .exe 到 apps/desktop/release/
@@ -139,12 +171,13 @@ pnpm --filter @inkforge/desktop run dist:win # 打包 Windows .exe 到 apps/desk
 inkforge/
 ├─ apps/desktop/          Electron 壳：主进程 / preload / renderer / e2e
 ├─ packages/
-│  ├─ shared/             IPC 契约 + domain types（被全包依赖）
-│  ├─ storage/            better-sqlite3 + 12 版迁移 + keystore + 文件布局
+│  ├─ shared/             IPC 契约 + domain types + 成就目录（被全包依赖）
+│  ├─ storage/            better-sqlite3 + 15 版迁移 + keystore + 文件布局
 │  ├─ llm-core/           LLMProvider 抽象 + 4 适配器 + token 估算
 │  ├─ editor/             TipTap 扩展 + 200 字静默分析 hook
 │  ├─ skill-engine/       Skill 解析 / 触发调度 / 模板渲染 / 市场拉取
 │  ├─ tavern-engine/      多角色 ContextBuilder + Budget + Summary + Round
+│  ├─ auto-writer-engine/ 🆕 4-Agent 流水线（Planner / Writer / Critic / Reflector）+ OOC 守门员 + 用户介入队列
 │  ├─ research-core/      资料检索 provider 抽象 + Tavily/Bing/Serp/LLM 4 adapter
 │  └─ review-engine/      5 builtin 维度 + findings 解析 + 导出
 ├─ assets/                Logo / Banner / 图标资源
@@ -164,6 +197,8 @@ inkforge/
 | 正文 | `<workspace>/projects/<name>/chapters/*.md`（纯文本，可任意编辑器打开） |
 | 元数据 | `<workspace>/inkforge.db`（SQLite，可备份、可迁移） |
 | 自动备份 | `<project>/.inkforge/autosave/<chapterId>.md`（5s 旁挂；恢复横幅出现时被引用） |
+| 章节快照 | `<project>/.history/snapshots/<chapId>/<id>.md`（M7 · pre-ai / post-ai / manual / pre-restore 等） |
+| 书籍封面 | `<project>/.bookshelf/cover.<ext>`（M7 · ≤2 MB，PNG/JPG/WEBP/GIF） |
 | API Key | 优先 OS Keychain（`keytar`），回退 AES-256-GCM 加密文件 `<workspace>/keystore.*` |
 | 日志 | `<userData>/logs/main.log` · `renderer.log`（仅本地） |
 
@@ -173,11 +208,13 @@ inkforge/
 
 ```bash
 pnpm --filter @inkforge/desktop run verify:all
-# verify:migrations    迁移幂等性 + 20 表 + 21 索引（5 项）
+# verify:migrations    迁移幂等性 + 26 表 + 30 索引 + 15 版本
 # verify:engine        token 估算 + 预算 + 上下文拼接（15 项）
 # verify:review-engine builtin + parse 容错 + summary + excerpt 定位（40 项）
 # verify:provider      多 Key 轮询策略与 cooldown（26 项）
 # verify:i18n          三语翻译 + 占位符一致 + coerceLang（25 项）
+# verify:catalog       provider 目录完整性
+# verify:auto-writer   findings parse / 重写阈值 / role resolver / prompt builder（41 项）
 
 pnpm --filter @inkforge/desktop run bench:storage
 # 默认 5×500×5：seed/list/get/update/feedback/vacuum 基线，回归对照用
@@ -204,6 +241,9 @@ pnpm --filter @inkforge/desktop run bench:storage
 - **Provider 适配器**：`packages/llm-core` 加一个 `LLMProvider` 实现 + `instantiateProvider` switch 分支
 - **Review 维度**：扩展 `packages/review-engine/src/index.ts` 的 `BUILTIN_DIMENSION_SPECS`
 - **资料检索 Adapter**：`packages/research-core` 加 `<name>-adapter.ts`
+- **AutoWriter Agent**：`packages/auto-writer-engine/src/agent-roles.ts` 调整 prompt 模板，或扩展 OOC 启发式（`ooc-gate.ts`）
+- **新成就**：在 `packages/shared/src/achievements.ts` 的 `ACHIEVEMENT_CATALOG` 添加条目；条件判定加到 `apps/desktop/src/main/services/achievement-service.ts`
+- **桌宠台词 / 节日装饰**：`apps/desktop/src/renderer/src/components/companion/companion-lines.ts` 与 `companion-festivals.ts`
 - **Bug 复现**：开 Issue，附「复制诊断摘要」（开发者模式）粘贴的输出
 
 提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)；安全相关请走 [SECURITY.md](SECURITY.md) 而不是公开 Issue。
@@ -217,7 +257,9 @@ pnpm --filter @inkforge/desktop run bench:storage
 - ✅ M4 体系化（审查 / 资料 / 世界观 / 每日总结 / 多 Key 轮询，60 断言）
 - ✅ M5 打磨发布（开发者模式 / 欢迎向导 / 自动更新 / 打包矩阵 / Skill 市场 / 文档 / E2E）
 - ✅ M6-D 持久化加固（双层 autosave + 崩溃标记 + 每周 VACUUM + 性能基线）
-- 🚧 M7 体验打磨与社区生态
+- ✅ M7 书房（多书并存 + 书籍封面 + 章节来源分类 + AutoWriter 多 Agent + 章节日志 + 章节快照）
+- ✅ M8 陪伴系（桌宠状态机 + 节日装饰 + 番茄钟 + 29 项成就 + 角色来信）
+- 🚧 M9 体验打磨与社区生态
 
 ---
 
@@ -243,6 +285,10 @@ Most writing toolchains keep "plain-text editor" and "AI chat" in separate world
 - **Multi-model native** — Claude · OpenAI · Gemini · any OpenAI-compatible endpoint. Each Skill or character card can bind its own.
 - **Programmable** — a Skill is a JSON bundle of `prompt + triggers + model binding + template variables`. Import/export by file.
 - **Multi-agent stage** — the *Tavern* lets multiple AI personas debate a topic, with token budgets and rolling summarization built-in.
+- **Many books, one shelf** — the *Bookshelf* module keeps multiple novels open in tabs; each has its own cover and chapters tagged by origin (manual / AI-assisted / AI-auto).
+- **AutoWriter** — a 4-agent pipeline (Planner → Writer → Critic → Reflector) writes chapters end-to-end with shared character & worldbuilding context, paragraph-level OOC gating, and live user steering ("inject idea" / "correct").
+- **Reversible AI edits** — every AI write snapshots before & after; even a restore takes its own snapshot, so nothing is ever truly lost.
+- **Desk pet · Achievements · In-character letters** — a hovering companion (Pomodoro / festival decorations / Konami easter egg), 29 writing achievements, and an inbox where your characters write *to you* in their own voice.
 - **Data sovereignty** — SQLite + Markdown in your chosen workspace. Git-friendly, Obsidian-friendly. **No telemetry endpoints, anywhere.**
 
 > InkForge is not a hosted service. No accounts, no cloud sync, no analytics. It treats the LLM as a *collaborator*, not a chatbox.
