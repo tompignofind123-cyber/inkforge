@@ -46,6 +46,7 @@ import {
   reportProviderKeyResult,
   streamText,
 } from "./llm-runtime";
+import { resolveSceneBinding } from "./scene-binding-service";
 import { createSnapshot } from "./snapshot-service";
 import { appendAiEntry } from "./chapter-log-service";
 
@@ -389,7 +390,12 @@ async function invokeOneAgent(args: {
   const { runId, chapterId, agentInput, getWindow, controller } = args;
   const ctx = getAppContext();
 
-  const providerRecord = resolveProviderRecord(agentInput.binding.providerId);
+  const resolvedScene = resolveSceneBinding("auto-writer", {
+    explicitProviderId: agentInput.binding.providerId,
+  });
+  const providerRecord = resolveProviderRecord(
+    resolvedScene.providerId ?? agentInput.binding.providerId,
+  );
   if (!providerRecord) {
     throw new Error(
       `auto-writer: provider not found: ${agentInput.binding.providerId}`,

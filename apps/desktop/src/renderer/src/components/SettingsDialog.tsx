@@ -5,6 +5,8 @@ import { getAnalysisThreshold } from "@inkforge/shared";
 import { settingsApi } from "../lib/api";
 import { useAppStore } from "../stores/app-store";
 import { useT } from "../lib/i18n";
+import { SceneRoutingPanel } from "./SceneRoutingPanel";
+import { SampleLibPanel } from "./SampleLibPanel";
 
 export function SettingsDialog(): JSX.Element | null {
   const open = useAppStore((s) => s.settingsPanelOpen);
@@ -51,7 +53,7 @@ export function SettingsDialog(): JSX.Element | null {
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-8" role="dialog">
-      <div className="w-full max-w-xl rounded-2xl border border-ink-600 bg-ink-800 p-6 text-ink-100 shadow-2xl">
+      <div className="flex max-h-[88vh] w-full max-w-2xl flex-col rounded-2xl border border-ink-600 bg-ink-800 p-6 text-ink-100 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold">{t("settings.title")}</h2>
           <button
@@ -63,7 +65,7 @@ export function SettingsDialog(): JSX.Element | null {
           </button>
         </div>
 
-        <div className="space-y-6 text-sm">
+        <div className="space-y-6 overflow-y-auto pr-1 text-sm">
           <section>
             <h3 className="mb-3 text-xs font-semibold uppercase text-ink-400">
               {t("settings.section.writing")}
@@ -137,6 +139,20 @@ export function SettingsDialog(): JSX.Element | null {
                 </button>
               </div>
             </div>
+          </section>
+
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase text-ink-400">
+              AI 路由
+            </h3>
+            <SceneRoutingPanel />
+          </section>
+
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase text-ink-400">
+              参考小说库 (RAG)
+            </h3>
+            <SampleLibPanel />
           </section>
 
           <section>

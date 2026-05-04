@@ -7,6 +7,13 @@ export interface ProjectRecord {
   createdAt: string;
   dailyGoal: number;
   lastOpened: string | null;
+  // ----- v19: creative metadata for AI outline/chapter generation -----
+  synopsis: string;
+  genre: string;
+  subGenre: string;
+  tags: string[];
+  masterOutline: string;
+  preRefineMasterOutline: string | null;
 }
 
 export interface ChapterRecord {
@@ -69,7 +76,8 @@ export type AppSettingKey =
   | "analysisThreshold"
   | "uiLanguage"
   | "devModeEnabled"
-  | "onboardingCompleted";
+  | "onboardingCompleted"
+  | "sceneRoutingMode";
 
 export interface AppSettings {
   theme: "dark" | "light";
@@ -79,6 +87,93 @@ export interface AppSettings {
   uiLanguage: "zh" | "en" | "ja";
   devModeEnabled: boolean;
   onboardingCompleted: boolean;
+  sceneRoutingMode: SceneRoutingMode;
+}
+
+// ===== Scene Bindings (ported from ainovel) =====
+export type SceneRoutingMode = "basic" | "advanced";
+
+export type SceneKeyBasic =
+  | "outline_generation"
+  | "main_generation"
+  | "extract"
+  | "summarize"
+  | "inline";
+
+export type SceneKeyAdvanced =
+  | "analyze"
+  | "quick"
+  | "chat"
+  | "skill"
+  | "tavern"
+  | "auto-writer"
+  | "review"
+  | "daily-summary"
+  | "letter";
+
+export type SceneKey = SceneKeyBasic | SceneKeyAdvanced;
+
+export interface SceneBindingRecord {
+  sceneKey: SceneKey;
+  providerId: string | null;
+  model: string | null;
+  updatedAt: string;
+}
+
+export const SCENE_KEYS_BASIC: readonly SceneKeyBasic[] = [
+  "outline_generation",
+  "main_generation",
+  "extract",
+  "summarize",
+  "inline",
+] as const;
+
+export const SCENE_KEYS_ADVANCED: readonly SceneKeyAdvanced[] = [
+  "analyze",
+  "quick",
+  "chat",
+  "skill",
+  "tavern",
+  "auto-writer",
+  "review",
+  "daily-summary",
+  "letter",
+] as const;
+
+// ===== Sample Library (参考小说库, ported from ainovel) =====
+export interface SampleLibRecord {
+  id: string;
+  projectId: string;
+  title: string;
+  author: string | null;
+  notes: string | null;
+  chunkCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SampleChunkRecord {
+  id: string;
+  libId: string;
+  ordinal: number;
+  chapterTitle: string | null;
+  text: string;
+}
+
+// ===== World Relationships (graph, ported from ainovel) =====
+export type WorldGraphEndpointKind = "character" | "world_entry";
+
+export interface WorldRelationshipRecord {
+  id: string;
+  projectId: string;
+  srcKind: WorldGraphEndpointKind;
+  srcId: string;
+  dstKind: WorldGraphEndpointKind;
+  dstId: string;
+  label: string | null;
+  weight: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type SkillScope = "global" | "project" | "community";

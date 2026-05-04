@@ -8,6 +8,7 @@ import { SkillPage } from "./pages/SkillPage";
 import { CharacterPage } from "./pages/CharacterPage";
 import { TavernPage } from "./pages/TavernPage";
 import { WorldPage } from "./pages/WorldPage";
+import { OutlinePage } from "./pages/OutlinePage";
 import { ResearchPage } from "./pages/ResearchPage";
 import { ReviewPage } from "./pages/ReviewPage";
 import { ActivityBar } from "./components/ActivityBar";
@@ -119,6 +120,7 @@ export function App(): JSX.Element {
               {mainView === "bookshelf" && <BookshelfPage />}
               {mainView === "achievement" && <AchievementHallPage />}
               {mainView === "letters" && <LetterInboxPage />}
+              {mainView === "outline" && <OutlinePage />}
             </ErrorBoundary>
           </div>
         </div>

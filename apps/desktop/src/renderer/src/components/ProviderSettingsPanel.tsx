@@ -114,6 +114,35 @@ export function ProviderSettingsPanel(): JSX.Element | null {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [testStatus, setTestStatus] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [remoteModels, setRemoteModels] = useState<string[]>([]);
+  const [remoteFetchStatus, setRemoteFetchStatus] = useState<string | null>(null);
+  const [fetchingModels, setFetchingModels] = useState(false);
+
+  const handleFetchRemoteModels = async () => {
+    setFetchingModels(true);
+    setRemoteFetchStatus(null);
+    try {
+      const trimmedKey = form.apiKey.trim();
+      const trimmedBase = form.baseUrl.trim();
+      // Prefer ad-hoc credentials when user is editing the key/base in form;
+      // fall back to saved provider record otherwise.
+      const useAdhoc = trimmedKey.length > 0 || form.id === "";
+      const res = useAdhoc
+        ? await providerApi.listRemoteModels({
+            vendor: form.vendor,
+            baseUrl: trimmedBase || undefined,
+            apiKey: trimmedKey || undefined,
+          })
+        : await providerApi.listRemoteModels({ providerId: form.id });
+      setRemoteModels(res.models.map((m) => m.id));
+      setRemoteFetchStatus(`✓ 拉到 ${res.count} 个模型 · ${res.durationMs}ms`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setRemoteFetchStatus(`✗ 拉取失败：${msg}`);
+    } finally {
+      setFetchingModels(false);
+    }
+  };
 
   const providers = providersQuery.data ?? [];
   const activeId = settings.activeProviderId;
@@ -338,19 +367,59 @@ export function ProviderSettingsPanel(): JSX.Element | null {
                 </label>
                 <label className="block">
                   <span className="text-ink-300">{t("provider.panel.defaultModel")}</span>
-                  <input
-                    list="provider-settings-models"
-                    className="mt-1 w-full rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
-                    value={form.defaultModel}
-                    onChange={(e) => setForm((f) => ({ ...f, defaultModel: e.target.value }))}
-                  />
-                  {suggestedModels.length > 0 && (
-                    <datalist id="provider-settings-models">
-                      {suggestedModels.map((model) => (
-                        <option key={model} value={model} />
+                  <div className="mt-1 flex gap-2">
+                    <input
+                      list="provider-settings-models"
+                      className="flex-1 rounded-md border border-ink-600 bg-ink-900 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none"
+                      value={form.defaultModel}
+                      onChange={(e) => setForm((f) => ({ ...f, defaultModel: e.target.value }))}
+                    />
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-md border border-ink-600 px-2 py-1 text-xs text-ink-300 hover:bg-ink-700 disabled:opacity-50"
+                      disabled={fetchingModels}
+                      onClick={handleFetchRemoteModels}
+                      title="从 provider API 拉取可用模型列表"
+                    >
+                      {fetchingModels ? "拉取中…" : "📡 拉取"}
+                    </button>
+                  </div>
+                  {(() => {
+                    const merged = [...new Set([...suggestedModels, ...remoteModels])];
+                    return merged.length > 0 ? (
+                      <datalist id="provider-settings-models">
+                        {merged.map((model) => (
+                          <option key={model} value={model} />
+                        ))}
+                      </datalist>
+                    ) : null;
+                  })()}
+                  {remoteFetchStatus ? (
+                    <p
+                      className={`mt-1 text-xs ${
+                        remoteFetchStatus.startsWith("✓") ? "text-emerald-400" : "text-red-400"
+                      }`}
+                    >
+                      {remoteFetchStatus}
+                    </p>
+                  ) : null}
+                  {remoteModels.length > 0 ? (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {remoteModels.slice(0, 8).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          className="rounded-md border border-ink-700 px-1.5 py-0.5 text-[11px] text-ink-300 hover:border-amber-500 hover:bg-ink-700"
+                          onClick={() => setForm((f) => ({ ...f, defaultModel: m }))}
+                        >
+                          {m}
+                        </button>
                       ))}
-                    </datalist>
-                  )}
+                      {remoteModels.length > 8 ? (
+                        <span className="text-[11px] text-ink-500">… +{remoteModels.length - 8} 个 (用 datalist 下拉)</span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </label>
               </div>
 

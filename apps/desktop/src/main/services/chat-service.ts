@@ -6,6 +6,8 @@ import {
   resolveProviderRecord,
   streamText,
 } from "./llm-runtime";
+import { resolveSceneBinding } from "./scene-binding-service";
+import { buildRagBlock } from "./rag-service";
 import { RateLimiter } from "./rate-limiter";
 
 const chatRateLimiter = new RateLimiter({ max: 30, windowMs: 60_000 });
@@ -58,7 +60,12 @@ export async function runChat(input: LLMChatInput): Promise<LLMChatResponse> {
     };
   }
 
-  const record = resolveProviderRecord(input.providerId);
+  const resolvedScene = resolveSceneBinding("chat", {
+    explicitProviderId: input.providerId,
+  });
+  const record = resolveProviderRecord(
+    resolvedScene.providerId ?? input.providerId,
+  );
   if (!record) {
     return {
       messageId,
@@ -81,6 +88,20 @@ export async function runChat(input: LLMChatInput): Promise<LLMChatResponse> {
   }
 
   const systemPrompt = buildSystemPrompt(input.systemPrompt, input.chapterExcerpt);
+  const ragQuery = [
+    input.chapterExcerpt,
+    history[history.length - 1]?.content,
+  ]
+    .filter((s): s is string => Boolean(s && s.trim()))
+    .join("\n");
+  const ragBlock = buildRagBlock(input.projectId, ragQuery);
+  const messages = ragBlock
+    ? history.map((item, i) =>
+        i === history.length - 1 && item.role === "user"
+          ? { role: item.role, content: `${ragBlock}\n${item.content}` }
+          : { role: item.role, content: item.content },
+      )
+    : history.map((item) => ({ role: item.role, content: item.content }));
 
   let accumulated = "";
   try {
@@ -91,7 +112,7 @@ export async function runChat(input: LLMChatInput): Promise<LLMChatResponse> {
       systemPrompt,
       temperature: input.temperature ?? 0.6,
       maxTokens: input.maxTokens ?? 600,
-      messages: history.map((item) => ({ role: item.role, content: item.content })),
+      messages,
     });
     for await (const chunk of stream) {
       if (chunk.type === "delta" && chunk.textDelta) accumulated += chunk.textDelta;

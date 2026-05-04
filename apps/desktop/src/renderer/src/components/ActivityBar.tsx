@@ -10,6 +10,7 @@ interface NavItem {
 
 const ITEMS: NavItem[] = [
   { view: "writing", icon: "✍", label: "写作", shortcut: "Ctrl+1" },
+  { view: "outline", icon: "📋", label: "大纲", shortcut: "Ctrl+`" },
   { view: "skill", icon: "🧩", label: "Skill", shortcut: "Ctrl+2" },
   { view: "character", icon: "👥", label: "人物", shortcut: "Ctrl+3" },
   { view: "tavern", icon: "🎭", label: "酒馆", shortcut: "Ctrl+4" },

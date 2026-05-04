@@ -14,6 +14,8 @@ import {
   resolveProviderRecord,
   streamText,
 } from "./llm-runtime";
+import { resolveSceneBinding } from "./scene-binding-service";
+import { buildRagBlock } from "./rag-service";
 import { RateLimiter } from "./rate-limiter";
 
 const quickActionRateLimiter = new RateLimiter({ max: 20, windowMs: 60_000 });
@@ -178,7 +180,13 @@ export async function runQuickAction(
   quickActionRateLimiter.touch("global");
 
   const ctx = getAppContext();
-  const record = resolveProviderRecord(input.providerId);
+  const resolvedScene = resolveSceneBinding("quick", {
+    explicitProviderId: input.providerId,
+    quickKind: input.kind,
+  });
+  const record = resolveProviderRecord(
+    resolvedScene.providerId ?? input.providerId,
+  );
   if (!record) {
     return {
       actionId,
@@ -203,6 +211,11 @@ export async function runQuickAction(
   }
 
   const prompt = buildPrompt(input);
+  const ragQuery = [input.contextBefore, input.selectedText, input.contextAfter]
+    .filter((s): s is string => Boolean(s && s.trim()))
+    .join("\n");
+  const ragBlock = buildRagBlock(input.projectId, ragQuery);
+  const userMessage = ragBlock ? `${ragBlock}\n${prompt.user}` : prompt.user;
 
   let accumulated = "";
   try {
@@ -213,7 +226,7 @@ export async function runQuickAction(
       systemPrompt: prompt.system,
       temperature: input.temperature ?? prompt.temperature,
       maxTokens: input.maxTokens ?? prompt.maxTokens,
-      userMessage: prompt.user,
+      userMessage,
     });
     for await (const chunk of stream) {
       if (chunk.type === "delta" && chunk.textDelta) accumulated += chunk.textDelta;

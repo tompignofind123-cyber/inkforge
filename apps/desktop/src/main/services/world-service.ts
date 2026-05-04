@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import {
+  cleanupOrphanRelationships,
   deleteWorldEntry,
   getWorldEntryById,
   insertWorldEntry,
@@ -80,7 +81,12 @@ export function deleteWorldEntryRecord(
   input: WorldDeleteInput,
 ): { id: string } {
   const ctx = getAppContext();
+  // Look up project_id before delete to clean orphan polymorphic relationships.
+  const existing = getWorldEntryById(ctx.db, input.id);
   deleteWorldEntry(ctx.db, input.id);
+  if (existing) {
+    cleanupOrphanRelationships(ctx.db, existing.projectId, "world_entry", input.id);
+  }
   return { id: input.id };
 }
 

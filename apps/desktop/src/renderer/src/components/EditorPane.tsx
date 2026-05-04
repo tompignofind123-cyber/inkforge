@@ -8,6 +8,7 @@ import { chapterApi, fsApi, llmApi, skillApi } from "../lib/api";
 import { useAppStore } from "../stores/app-store";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { InspirationBubble } from "./InspirationBubble";
+import { ChapterFromOutlineDialog } from "./ChapterFromOutlineDialog";
 
 interface EditorPaneProps {
   chapter: ChapterRecord | null;
@@ -27,6 +28,7 @@ export function EditorPane({ chapter, providers }: EditorPaneProps): JSX.Element
   const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
   const [skillMenuOpen, setSkillMenuOpen] = useState(false);
   const [skillStatus, setSkillStatus] = useState<string | null>(null);
+  const [outlineDialogOpen, setOutlineDialogOpen] = useState(false);
   const [recoveryPrompt, setRecoveryPrompt] = useState<
     { content: string; savedAt: number } | null
   >(null);
@@ -293,6 +295,13 @@ export function EditorPane({ chapter, providers }: EditorPaneProps): JSX.Element
           >
             手动分析
           </button>
+          <button
+            className="rounded-md border border-ink-600 px-2 py-1 text-xs hover:bg-ink-700"
+            onClick={() => setOutlineDialogOpen(true)}
+            title="基于章节大纲卡 AI 生成本章正文"
+          >
+            📋 从大纲生成
+          </button>
           <div ref={skillMenuRef} className="relative">
             <button
               className="flex items-center gap-1 rounded-md border border-ink-600 px-2 py-1 text-xs hover:bg-ink-700 disabled:opacity-50"
@@ -395,6 +404,13 @@ export function EditorPane({ chapter, providers }: EditorPaneProps): JSX.Element
         projectId={chapter.projectId}
         chapterId={chapter.id}
       />
+      {chapter ? (
+        <ChapterFromOutlineDialog
+          chapter={chapter}
+          open={outlineDialogOpen}
+          onClose={() => setOutlineDialogOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

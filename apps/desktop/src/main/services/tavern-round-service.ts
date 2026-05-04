@@ -37,6 +37,7 @@ import {
   resolveProviderRecord,
   streamText,
 } from "./llm-runtime";
+import { resolveSceneBinding } from "./scene-binding-service";
 
 const CHUNK_CHANNEL: typeof ipcEventChannels.tavernChunk = "tavern:chunk";
 const DONE_CHANNEL: typeof ipcEventChannels.tavernDone = "tavern:done";
@@ -245,7 +246,12 @@ export function stopTavernRound(
 async function* streamCharacterCompletion(
   input: OrchestratorStreamInput,
 ): AsyncIterable<OrchestratorStreamChunk> {
-  const providerRecord = resolveProviderRecord(input.providerId);
+  const resolvedScene = resolveSceneBinding("tavern", {
+    explicitProviderId: input.providerId,
+  });
+  const providerRecord = resolveProviderRecord(
+    resolvedScene.providerId ?? input.providerId,
+  );
   if (!providerRecord) {
     yield { type: "error", error: "provider_not_configured" };
     return;

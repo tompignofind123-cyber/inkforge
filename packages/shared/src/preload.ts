@@ -188,6 +188,7 @@ export interface InkforgeApi {
     list(): Promise<ProviderRecord[]>;
     delete(input: ProviderDeleteInput): Promise<{ id: string }>;
     test(input: ProviderTestInput): Promise<ProviderTestResponse>;
+    listRemoteModels(input: ProviderListRemoteModelsInput): Promise<ProviderListRemoteModelsResponse>;
   };
   llm: {
     analyze(input: LLMAnalyzeInput): Promise<LLMAnalyzeResponse>;
@@ -500,3 +501,139 @@ export interface InkforgeApi {
     ): Unsubscribe;
   };
 }
+
+// =====================================================================
+// Scene Bindings (ported from ainovel) · interface declaration merging
+// =====================================================================
+import type {
+  SceneBindingListResponse,
+  SceneBindingResetInput,
+  SceneBindingSetModeInput,
+  SceneBindingUpsertInput,
+} from "./ipc";
+import type {
+  SceneBindingRecord,
+  SceneKey,
+  SceneRoutingMode,
+} from "./domain";
+
+export interface InkforgeApi {
+  sceneBinding: {
+    list(): Promise<SceneBindingListResponse>;
+    upsert(input: SceneBindingUpsertInput): Promise<SceneBindingRecord>;
+    reset(input: SceneBindingResetInput): Promise<{ sceneKey: SceneKey }>;
+    getMode(): Promise<{ mode: SceneRoutingMode }>;
+    setMode(input: SceneBindingSetModeInput): Promise<{ mode: SceneRoutingMode }>;
+  };
+}
+
+// =====================================================================
+// Sample Library (参考小说库, ported from ainovel) · interface declaration merging
+// =====================================================================
+import type {
+  SampleLibCreateInput,
+  SampleLibDeleteInput,
+  SampleLibImportEpubInput,
+  SampleLibImportResponse,
+  SampleLibImportTextInput,
+  SampleLibListInput,
+} from "./ipc";
+import type {
+  SampleLibRecord,
+} from "./domain";
+
+export interface InkforgeApi {
+  sampleLib: {
+    list(input: SampleLibListInput): Promise<SampleLibRecord[]>;
+    create(input: SampleLibCreateInput): Promise<SampleLibRecord>;
+    delete(input: SampleLibDeleteInput): Promise<{ libId: string }>;
+    importText(input: SampleLibImportTextInput): Promise<SampleLibImportResponse>;
+    importEpub(input: SampleLibImportEpubInput): Promise<SampleLibImportResponse>;
+  };
+}
+
+// =====================================================================
+// World Relationships (graph, ported from ainovel) · interface declaration merging
+// =====================================================================
+import type {
+  WorldRelationshipDeleteInput,
+  WorldRelationshipListInput,
+  WorldRelationshipSaveInput,
+} from "./ipc";
+import type {
+  WorldRelationshipRecord,
+} from "./domain";
+
+export interface InkforgeApi {
+  worldRelationship: {
+    list(input: WorldRelationshipListInput): Promise<WorldRelationshipRecord[]>;
+    save(input: WorldRelationshipSaveInput): Promise<WorldRelationshipRecord>;
+    delete(input: WorldRelationshipDeleteInput): Promise<{ id: string }>;
+  };
+}
+
+// =====================================================================
+// Project Export + Chapter Bulk Import (ported from ainovel) · merging
+// =====================================================================
+import type {
+  ChapterImportBulkResponse,
+  ChapterImportEpubInput,
+  ChapterImportTxtInput,
+  ProjectExportInput,
+  ProjectExportResponse,
+} from "./ipc";
+
+export interface InkforgeApi {
+  projectExport: {
+    txt(input: ProjectExportInput): Promise<ProjectExportResponse>;
+    md(input: ProjectExportInput): Promise<ProjectExportResponse>;
+    html(input: ProjectExportInput): Promise<ProjectExportResponse>;
+    docx(input: ProjectExportInput): Promise<ProjectExportResponse>;
+    epub(input: ProjectExportInput): Promise<ProjectExportResponse>;
+  };
+  chapterImport: {
+    txt(input: ChapterImportTxtInput): Promise<ChapterImportBulkResponse>;
+    epub(input: ChapterImportEpubInput): Promise<ChapterImportBulkResponse>;
+  };
+}
+
+// =====================================================================
+// Module 6: AI outline + chapter generation · merging
+// =====================================================================
+import type {
+  ChapterCommitDraftInput,
+  ChapterCommitDraftResponse,
+  ChapterGenerateFromOutlineInput,
+  ChapterGenerateFromOutlineResponse,
+  OutlineGenerateChaptersInput,
+  OutlineGenerateChaptersResponse,
+  OutlineGenerateMasterInput,
+  OutlineGenerateMasterResponse,
+  OutlineRefineInput,
+  OutlineRefineResponse,
+  OutlineUndoRefineInput,
+  OutlineUndoRefineResponse,
+  ProjectUpdateMetaInput,
+} from "./ipc";
+
+export interface InkforgeApi {
+  outlineGen: {
+    updateProjectMeta(input: ProjectUpdateMetaInput): Promise<ProjectRecord>;
+    generateMaster(input: OutlineGenerateMasterInput): Promise<OutlineGenerateMasterResponse>;
+    generateChapters(input: OutlineGenerateChaptersInput): Promise<OutlineGenerateChaptersResponse>;
+    refine(input: OutlineRefineInput): Promise<OutlineRefineResponse>;
+    undoRefine(input: OutlineUndoRefineInput): Promise<OutlineUndoRefineResponse>;
+  };
+  chapterGen: {
+    fromOutline(input: ChapterGenerateFromOutlineInput): Promise<ChapterGenerateFromOutlineResponse>;
+    commitDraft(input: ChapterCommitDraftInput): Promise<ChapterCommitDraftResponse>;
+  };
+}
+
+// =====================================================================
+// Provider remote model list · merging into existing `provider` namespace
+// =====================================================================
+import type {
+  ProviderListRemoteModelsInput,
+  ProviderListRemoteModelsResponse,
+} from "./ipc";

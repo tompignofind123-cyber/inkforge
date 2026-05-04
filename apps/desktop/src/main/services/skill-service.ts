@@ -32,6 +32,8 @@ import {
   resolveProviderRecord,
   streamText,
 } from "./llm-runtime";
+import { resolveSceneBinding } from "./scene-binding-service";
+import { buildRagBlock } from "./rag-service";
 import { RateLimiter } from "./rate-limiter";
 
 const SKILL_CHUNK_CHANNEL: typeof ipcEventChannels.skillChunk = "skill:chunk";
@@ -194,7 +196,13 @@ async function executeRun(options: ExecuteRunOptions): Promise<void> {
     return;
   }
 
-  const providerRecord = resolveProviderRecord(skill.binding.providerId);
+  const resolvedScene = resolveSceneBinding("skill", {
+    explicitProviderId: skill.binding.providerId,
+    explicitModel: skill.binding.model ?? null,
+  });
+  const providerRecord = resolveProviderRecord(
+    resolvedScene.providerId ?? skill.binding.providerId,
+  );
   if (!providerRecord) {
     emitDone(window, {
       runId,
@@ -243,6 +251,8 @@ async function executeRun(options: ExecuteRunOptions): Promise<void> {
 
   const model = skill.binding.model ?? providerRecord.defaultModel;
   const triggerType = input.triggerType ?? "manual";
+  const ragBlock = buildRagBlock(input.projectId, renderResult.text);
+  const userMessage = ragBlock ? `${ragBlock}\n${renderResult.text}` : renderResult.text;
   let accumulatedText = "";
   let usage: SkillDoneEvent["usage"];
 
@@ -251,7 +261,7 @@ async function executeRun(options: ExecuteRunOptions): Promise<void> {
       providerRecord,
       apiKey,
       systemPrompt: "你是小说写作技能执行助手。严格执行技能指令，输出简洁、可直接使用的结果。",
-      userMessage: renderResult.text,
+      userMessage,
       temperature: skill.binding.temperature,
       maxTokens: skill.binding.maxTokens,
       model,

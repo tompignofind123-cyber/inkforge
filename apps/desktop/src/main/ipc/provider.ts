@@ -8,6 +8,8 @@ import {
 } from "@inkforge/storage";
 import type {
   ProviderDeleteInput,
+  ProviderListRemoteModelsInput,
+  ProviderListRemoteModelsResponse,
   ProviderRecord,
   ProviderSaveInput,
   ProviderTestInput,
@@ -16,11 +18,14 @@ import type {
 } from "@inkforge/shared";
 import { createProvider } from "@inkforge/llm-core";
 import { getAppContext } from "../services/app-state";
+import { listRemoteModels } from "../services/provider-models-service";
 
 const PROVIDER_SAVE: typeof ipcChannels.providerSave = "provider:save";
 const PROVIDER_LIST: typeof ipcChannels.providerList = "provider:list";
 const PROVIDER_DELETE: typeof ipcChannels.providerDelete = "provider:delete";
 const PROVIDER_TEST: typeof ipcChannels.providerTest = "provider:test";
+const PROVIDER_LIST_REMOTE_MODELS: typeof ipcChannels.providerListRemoteModels =
+  "provider:list-remote-models";
 
 export function registerProviderHandlers(): void {
   ipcMain.handle(PROVIDER_SAVE, async (_event, input: ProviderSaveInput): Promise<ProviderRecord> => {
@@ -68,6 +73,13 @@ export function registerProviderHandlers(): void {
     deleteProviderRow(ctx.db, input.id);
     return { id: input.id };
   });
+
+  ipcMain.handle(
+    PROVIDER_LIST_REMOTE_MODELS,
+    async (_event, input: ProviderListRemoteModelsInput): Promise<ProviderListRemoteModelsResponse> => {
+      return listRemoteModels(input);
+    },
+  );
 
   ipcMain.handle(PROVIDER_TEST, async (_event, input: ProviderTestInput): Promise<ProviderTestResponse> => {
     const ctx = getAppContext();

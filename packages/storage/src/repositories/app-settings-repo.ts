@@ -1,5 +1,5 @@
 import type { DB } from "../db";
-import type { AppSettings } from "@inkforge/shared";
+import type { AppSettings, SceneRoutingMode } from "@inkforge/shared";
 import { coerceLang } from "@inkforge/shared";
 
 const DEFAULTS: AppSettings = {
@@ -10,6 +10,7 @@ const DEFAULTS: AppSettings = {
   uiLanguage: "zh",
   devModeEnabled: false,
   onboardingCompleted: false,
+  sceneRoutingMode: "basic",
 };
 
 type SettingRow = { key: string; value: string };
@@ -30,6 +31,8 @@ function parseValue(key: keyof AppSettings, raw: string): AppSettings[keyof AppS
     }
     case "uiLanguage":
       return coerceLang(raw, DEFAULTS.uiLanguage);
+    case "sceneRoutingMode":
+      return raw === "advanced" ? "advanced" : ("basic" as SceneRoutingMode);
     default:
       return raw as AppSettings[keyof AppSettings];
   }

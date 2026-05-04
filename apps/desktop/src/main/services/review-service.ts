@@ -59,6 +59,8 @@ import {
   resolveProviderRecord,
   streamText,
 } from "./llm-runtime";
+import { resolveSceneBinding } from "./scene-binding-service";
+import { buildRagBlock } from "./rag-service";
 
 const PROGRESS_CHANNEL: typeof ipcEventChannels.reviewProgress = "review:progress";
 const DONE_CHANNEL: typeof ipcEventChannels.reviewDone = "review:done";
@@ -263,7 +265,12 @@ interface RunReviewParams {
 async function runReview(params: RunReviewParams): Promise<void> {
   const { report, dimensions, chapters, input, window } = params;
   const ctx = getAppContext();
-  const providerRecord = resolveProviderRecord(input.providerId);
+  const resolvedScene = resolveSceneBinding("review", {
+    explicitProviderId: input.providerId,
+  });
+  const providerRecord = resolveProviderRecord(
+    resolvedScene.providerId ?? input.providerId,
+  );
   if (!providerRecord) {
     finalize(report.id, "failed", "provider_not_configured", window);
     return;
@@ -301,15 +308,18 @@ async function runReview(params: RunReviewParams): Promise<void> {
         if (!dim.builtinId) continue;
         const spec = getBuiltinPromptSpec(dim.builtinId);
         if (!spec) continue;
+        const baseUserMessage = spec.userPrompt({
+          chapterTitle: chapter.title,
+          chapterText: trimmedText,
+        });
+        const ragBlock = buildRagBlock(input.projectId, trimmedText);
+        const userMessage = ragBlock ? `${ragBlock}\n${baseUserMessage}` : baseUserMessage;
         const drafts = await runDimensionForChapter({
           providerRecord,
           apiKey,
           model: input.model,
           systemPrompt: spec.systemPrompt(promptContext),
-          userMessage: spec.userPrompt({
-            chapterTitle: chapter.title,
-            chapterText: trimmedText,
-          }),
+          userMessage,
         });
 
         for (const draft of drafts) {
