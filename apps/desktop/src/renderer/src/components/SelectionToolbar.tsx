@@ -59,6 +59,7 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element | nu
   const [result, setResult] = useState<QuickResult | null>(null);
   const [skillMenuOpen, setSkillMenuOpen] = useState(false);
   const [skillStatus, setSkillStatus] = useState<string | null>(null);
+  const [candidateCount, setCandidateCount] = useState<1 | 2 | 3>(1);
   const skillMenuRef = useRef<HTMLDivElement | null>(null);
   const activeSkillRunRef = useRef<{ runId: string; skillName: string } | null>(null);
 
@@ -147,7 +148,7 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element | nu
     if (!editor) return;
     const { from, to } = editor.state.selection;
     setResult({ kind: action.kind, action, from, to, loading: true });
-    const input: LLMQuickActionInput = {
+    const baseInput: LLMQuickActionInput = {
       kind: action.kind,
       selectedText: selectionText,
       contextBefore,
@@ -156,11 +157,57 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element | nu
       projectId,
       chapterId,
     };
+
+    // For "options" placement (rephrase/inspire) the kernel itself returns N
+    // options via JSON; pass options=count and run a single call.
+    // For other placements, fan out N parallel calls and merge.
+    const wantsKernelOptions = action.placement === "options";
+    const count = wantsKernelOptions ? Math.max(candidateCount, 3) : candidateCount;
+    const inputs: LLMQuickActionInput[] = wantsKernelOptions
+      ? [{ ...baseInput, options: count }]
+      : Array.from({ length: count }, () => ({ ...baseInput }));
+
     try {
-      const response = await llmApi.quick(input);
-      setResult({ kind: action.kind, action, from, to, response, loading: false });
-      if (response.status === "completed" && action.placement === "timeline") {
-        onPushFeedback?.(response.text ?? "", "critique");
+      const settled = await Promise.allSettled(inputs.map((i) => llmApi.quick(i)));
+      const responses = settled
+        .filter((s): s is PromiseFulfilledResult<LLMQuickActionResponse> => s.status === "fulfilled")
+        .map((s) => s.value);
+      const errors = settled
+        .filter((s): s is PromiseRejectedResult => s.status === "rejected")
+        .map((s) => (s.reason instanceof Error ? s.reason.message : String(s.reason)));
+
+      if (responses.length === 0) {
+        setResult({
+          kind: action.kind,
+          action,
+          from,
+          to,
+          error: errors[0] ?? "all candidates failed",
+          loading: false,
+        });
+        return;
+      }
+
+      // Merge: if kernel returned options, use them directly; otherwise stack texts.
+      const options =
+        wantsKernelOptions && responses[0].options?.length
+          ? responses[0].options
+          : responses
+              .map((r) => r.text ?? "")
+              .filter((t) => t.length > 0);
+      const totalDuration = responses.reduce((sum, r) => sum + r.durationMs, 0);
+      const merged: LLMQuickActionResponse = {
+        actionId: responses[0].actionId,
+        kind: action.kind,
+        status: "completed",
+        text: options[0],
+        options,
+        durationMs: Math.round(totalDuration / responses.length),
+        providerId: responses[0].providerId,
+      };
+      setResult({ kind: action.kind, action, from, to, response: merged, loading: false });
+      if (merged.status === "completed" && action.placement === "timeline") {
+        onPushFeedback?.(merged.text ?? "", "critique");
       }
     } catch (err) {
       setResult({
@@ -314,6 +361,20 @@ export function SelectionToolbar(props: SelectionToolbarProps): JSX.Element | nu
           )}
           <span className="px-1 text-ink-500">|</span>
           <span className="px-1 text-ink-400">{selectionText.length}字</span>
+          <span className="px-1 text-ink-500">|</span>
+          <label className="flex items-center gap-1 px-1 text-ink-400" title="一次生成几个候选 (并发调用)">
+            候选
+            <select
+              className="rounded border border-ink-600 bg-ink-900 px-1 py-0.5 text-xs text-ink-100 focus:border-amber-500 focus:outline-none"
+              value={candidateCount}
+              onChange={(e) => setCandidateCount(Number(e.target.value) as 1 | 2 | 3)}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <option value={1}>1</option>
+              <option value={2}>2</option>
+              <option value={3}>3</option>
+            </select>
+          </label>
         </div>
       )}
       {skillStatus && !rect && (

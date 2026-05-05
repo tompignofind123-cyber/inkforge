@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import {
+  cleanupOrphanRelationships,
   deleteNovelCharacter,
   getNovelCharacterById,
   insertNovelCharacter,
@@ -56,6 +57,11 @@ export function deleteNovelCharacterRecord(
   input: NovelCharacterDeleteInput,
 ): { id: string } {
   const ctx = getAppContext();
+  // Look up project_id before delete to clean orphan polymorphic relationships.
+  const existing = getNovelCharacterById(ctx.db, input.id);
   deleteNovelCharacter(ctx.db, input.id);
+  if (existing) {
+    cleanupOrphanRelationships(ctx.db, existing.projectId, "character", input.id);
+  }
   return { id: input.id };
 }

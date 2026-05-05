@@ -20,6 +20,8 @@ import {
   resolveProviderRecord,
   streamText,
 } from "./llm-runtime";
+import { resolveSceneBinding } from "./scene-binding-service";
+import { buildRagBlock } from "./rag-service";
 import { RateLimiter } from "./rate-limiter";
 
 const LLM_CHUNK_CHANNEL: typeof ipcEventChannels.llmChunk = "llm:chunk";
@@ -90,7 +92,12 @@ export async function startAnalysis(options: StartAnalysisOptions): Promise<LLMA
   }
   analysisRateLimiter.touch(input.chapterId);
 
-  const providerRecord = resolveProviderRecord(input.providerId);
+  const resolvedScene = resolveSceneBinding("analyze", {
+    explicitProviderId: input.providerId,
+  });
+  const providerRecord = resolveProviderRecord(
+    resolvedScene.providerId ?? input.providerId,
+  );
   if (!providerRecord) {
     emitDone(window, {
       analysisId,
@@ -142,7 +149,9 @@ async function runAnalysis(params: RunAnalysisParams): Promise<void> {
   const ctx = getAppContext();
   const alreadyNoted = fetchRecentFeedbackSummaries(input.chapterId, 3);
   const systemPrompt = buildSystemPrompt(input.systemPrompt, alreadyNoted);
-  const userMessage = input.chapterText.trim();
+  const baseMessage = input.chapterText.trim();
+  const ragBlock = buildRagBlock(input.projectId, baseMessage);
+  const userMessage = ragBlock ? `${ragBlock}\n${baseMessage}` : baseMessage;
 
   let lastError: string | null = null;
   for (let attempt = 0; attempt <= RETRY_LIMIT; attempt += 1) {

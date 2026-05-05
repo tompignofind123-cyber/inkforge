@@ -124,6 +124,7 @@ export const providerApi = {
   list: (): Promise<ProviderRecord[]> => api().provider.list(),
   delete: (input: ProviderDeleteInput): Promise<{ id: string }> => api().provider.delete(input),
   test: (input: ProviderTestInput): Promise<ProviderTestResponse> => api().provider.test(input),
+  listRemoteModels: (input: import("@inkforge/shared").ProviderListRemoteModelsInput): Promise<import("@inkforge/shared").ProviderListRemoteModelsResponse> => api().provider.listRemoteModels(input),
 };
 
 export const llmApi = {
@@ -371,4 +372,57 @@ export const letterApi = {
   dismiss: (input: import("@inkforge/shared").LetterDismissInput): Promise<{ letterId: string }> => api().letter.dismiss(input),
   delete: (input: import("@inkforge/shared").LetterDeleteInput): Promise<{ letterId: string }> => api().letter.delete(input),
   onArrived: (listener: (payload: import("@inkforge/shared").IpcEventMap["letter:arrived"]) => void) => api().letter.onArrived(listener),
+};
+
+// ----- Scene Bindings (ported from ainovel) -----
+export const sceneBindingApi = {
+  list: (): Promise<import("@inkforge/shared").SceneBindingListResponse> => api().sceneBinding.list(),
+  upsert: (input: import("@inkforge/shared").SceneBindingUpsertInput): Promise<import("@inkforge/shared").SceneBindingRecord> => api().sceneBinding.upsert(input),
+  reset: (input: import("@inkforge/shared").SceneBindingResetInput): Promise<{ sceneKey: import("@inkforge/shared").SceneKey }> => api().sceneBinding.reset(input),
+  getMode: (): Promise<{ mode: import("@inkforge/shared").SceneRoutingMode }> => api().sceneBinding.getMode(),
+  setMode: (input: import("@inkforge/shared").SceneBindingSetModeInput): Promise<{ mode: import("@inkforge/shared").SceneRoutingMode }> => api().sceneBinding.setMode(input),
+};
+
+// ----- Sample Library + RAG (ported from ainovel) -----
+export const sampleLibApi = {
+  list: (input: import("@inkforge/shared").SampleLibListInput): Promise<import("@inkforge/shared").SampleLibRecord[]> => api().sampleLib.list(input),
+  create: (input: import("@inkforge/shared").SampleLibCreateInput): Promise<import("@inkforge/shared").SampleLibRecord> => api().sampleLib.create(input),
+  delete: (input: import("@inkforge/shared").SampleLibDeleteInput): Promise<{ libId: string }> => api().sampleLib.delete(input),
+  importText: (input: import("@inkforge/shared").SampleLibImportTextInput): Promise<import("@inkforge/shared").SampleLibImportResponse> => api().sampleLib.importText(input),
+  importEpub: (input: import("@inkforge/shared").SampleLibImportEpubInput): Promise<import("@inkforge/shared").SampleLibImportResponse> => api().sampleLib.importEpub(input),
+};
+
+// ----- World Relationships (graph, ported from ainovel) -----
+export const worldRelationshipApi = {
+  list: (input: import("@inkforge/shared").WorldRelationshipListInput): Promise<import("@inkforge/shared").WorldRelationshipRecord[]> => api().worldRelationship.list(input),
+  save: (input: import("@inkforge/shared").WorldRelationshipSaveInput): Promise<import("@inkforge/shared").WorldRelationshipRecord> => api().worldRelationship.save(input),
+  delete: (input: import("@inkforge/shared").WorldRelationshipDeleteInput): Promise<{ id: string }> => api().worldRelationship.delete(input),
+};
+
+// ----- Project Export + Chapter Bulk Import (ported from ainovel) -----
+export const projectExportApi = {
+  txt: (input: import("@inkforge/shared").ProjectExportInput): Promise<import("@inkforge/shared").ProjectExportResponse> => api().projectExport.txt(input),
+  md: (input: import("@inkforge/shared").ProjectExportInput): Promise<import("@inkforge/shared").ProjectExportResponse> => api().projectExport.md(input),
+  html: (input: import("@inkforge/shared").ProjectExportInput): Promise<import("@inkforge/shared").ProjectExportResponse> => api().projectExport.html(input),
+  docx: (input: import("@inkforge/shared").ProjectExportInput): Promise<import("@inkforge/shared").ProjectExportResponse> => api().projectExport.docx(input),
+  epub: (input: import("@inkforge/shared").ProjectExportInput): Promise<import("@inkforge/shared").ProjectExportResponse> => api().projectExport.epub(input),
+};
+
+export const chapterImportApi = {
+  txt: (input: import("@inkforge/shared").ChapterImportTxtInput): Promise<import("@inkforge/shared").ChapterImportBulkResponse> => api().chapterImport.txt(input),
+  epub: (input: import("@inkforge/shared").ChapterImportEpubInput): Promise<import("@inkforge/shared").ChapterImportBulkResponse> => api().chapterImport.epub(input),
+};
+
+// ----- Module 6: AI outline + chapter generation (ainovel-style) -----
+export const outlineGenApi = {
+  updateProjectMeta: (input: import("@inkforge/shared").ProjectUpdateMetaInput): Promise<import("@inkforge/shared").ProjectRecord> => api().outlineGen.updateProjectMeta(input),
+  generateMaster: (input: import("@inkforge/shared").OutlineGenerateMasterInput): Promise<import("@inkforge/shared").OutlineGenerateMasterResponse> => api().outlineGen.generateMaster(input),
+  generateChapters: (input: import("@inkforge/shared").OutlineGenerateChaptersInput): Promise<import("@inkforge/shared").OutlineGenerateChaptersResponse> => api().outlineGen.generateChapters(input),
+  refine: (input: import("@inkforge/shared").OutlineRefineInput): Promise<import("@inkforge/shared").OutlineRefineResponse> => api().outlineGen.refine(input),
+  undoRefine: (input: import("@inkforge/shared").OutlineUndoRefineInput): Promise<import("@inkforge/shared").OutlineUndoRefineResponse> => api().outlineGen.undoRefine(input),
+};
+
+export const chapterGenApi = {
+  fromOutline: (input: import("@inkforge/shared").ChapterGenerateFromOutlineInput): Promise<import("@inkforge/shared").ChapterGenerateFromOutlineResponse> => api().chapterGen.fromOutline(input),
+  commitDraft: (input: import("@inkforge/shared").ChapterCommitDraftInput): Promise<import("@inkforge/shared").ChapterCommitDraftResponse> => api().chapterGen.commitDraft(input),
 };

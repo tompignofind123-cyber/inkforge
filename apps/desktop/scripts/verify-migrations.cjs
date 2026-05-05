@@ -47,6 +47,14 @@ const EXPECTED_TABLES = [
   // ----- M8 · 活人感 (v15) -----
   "achievements_unlocked",
   "character_letters",
+  // ----- Scene Bindings (v16, ported from ainovel) -----
+  "scene_bindings_basic",
+  "scene_bindings_advanced",
+  // ----- Sample Library + RAG (v17, ported from ainovel) -----
+  "sample_libs",
+  "sample_chunks",
+  // ----- World Relationships (v18, ported from ainovel) -----
+  "world_relationships",
 ];
 
 const EXPECTED_INDEXES = [
@@ -86,9 +94,16 @@ const EXPECTED_INDEXES = [
   "idx_achievements_project_unlocked",
   "idx_character_letters_project_generated",
   "idx_character_letters_character",
+  // ----- Sample Library + RAG (v17, ported from ainovel) -----
+  "idx_sample_libs_project",
+  "idx_sample_chunks_lib",
+  // ----- World Relationships (v18, ported from ainovel) -----
+  "idx_world_rel_project",
+  "idx_world_rel_src",
+  "idx_world_rel_dst",
 ];
 
-const EXPECTED_MAX_VERSION = 15;
+const EXPECTED_MAX_VERSION = 19;
 const EXPECTED_VERSIONS = Array.from(
   { length: EXPECTED_MAX_VERSION },
   (_, i) => i + 1,

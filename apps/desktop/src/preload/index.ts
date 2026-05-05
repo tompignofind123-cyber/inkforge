@@ -49,6 +49,7 @@ const api: InkforgeApi = {
     list: () => ipcRenderer.invoke(ipcChannels.providerList),
     delete: (input) => ipcRenderer.invoke(ipcChannels.providerDelete, input),
     test: (input) => ipcRenderer.invoke(ipcChannels.providerTest, input),
+    listRemoteModels: (input) => ipcRenderer.invoke(ipcChannels.providerListRemoteModels, input),
   },
   llm: {
     analyze: (input) => ipcRenderer.invoke(ipcChannels.llmAnalyze, input),
@@ -275,6 +276,52 @@ const api: InkforgeApi = {
     dismiss: (input) => ipcRenderer.invoke(ipcChannels.letterDismiss, input),
     delete: (input) => ipcRenderer.invoke(ipcChannels.letterDelete, input),
     onArrived: (listener) => subscribe(ipcEventChannels.letterArrived, listener),
+  },
+  // ----- Scene Bindings (ported from ainovel) -----
+  sceneBinding: {
+    list: () => ipcRenderer.invoke(ipcChannels.sceneBindingList),
+    upsert: (input) => ipcRenderer.invoke(ipcChannels.sceneBindingUpsert, input),
+    reset: (input) => ipcRenderer.invoke(ipcChannels.sceneBindingReset, input),
+    getMode: () => ipcRenderer.invoke(ipcChannels.sceneBindingGetMode),
+    setMode: (input) => ipcRenderer.invoke(ipcChannels.sceneBindingSetMode, input),
+  },
+  // ----- Sample Library + RAG (ported from ainovel) -----
+  sampleLib: {
+    list: (input) => ipcRenderer.invoke(ipcChannels.sampleLibList, input),
+    create: (input) => ipcRenderer.invoke(ipcChannels.sampleLibCreate, input),
+    delete: (input) => ipcRenderer.invoke(ipcChannels.sampleLibDelete, input),
+    importText: (input) => ipcRenderer.invoke(ipcChannels.sampleLibImportText, input),
+    importEpub: (input) => ipcRenderer.invoke(ipcChannels.sampleLibImportEpub, input),
+  },
+  // ----- World Relationships (graph, ported from ainovel) -----
+  worldRelationship: {
+    list: (input) => ipcRenderer.invoke(ipcChannels.worldRelationshipList, input),
+    save: (input) => ipcRenderer.invoke(ipcChannels.worldRelationshipSave, input),
+    delete: (input) => ipcRenderer.invoke(ipcChannels.worldRelationshipDelete, input),
+  },
+  // ----- Project Export + Chapter Bulk Import (ported from ainovel) -----
+  projectExport: {
+    txt: (input) => ipcRenderer.invoke(ipcChannels.projectExportTxt, input),
+    md: (input) => ipcRenderer.invoke(ipcChannels.projectExportMd, input),
+    html: (input) => ipcRenderer.invoke(ipcChannels.projectExportHtml, input),
+    docx: (input) => ipcRenderer.invoke(ipcChannels.projectExportDocx, input),
+    epub: (input) => ipcRenderer.invoke(ipcChannels.projectExportEpub, input),
+  },
+  chapterImport: {
+    txt: (input) => ipcRenderer.invoke(ipcChannels.chapterImportTxt, input),
+    epub: (input) => ipcRenderer.invoke(ipcChannels.chapterImportEpub, input),
+  },
+  // ----- Module 6: AI outline + chapter generation (ainovel-style) -----
+  outlineGen: {
+    updateProjectMeta: (input) => ipcRenderer.invoke(ipcChannels.projectUpdateMeta, input),
+    generateMaster: (input) => ipcRenderer.invoke(ipcChannels.outlineGenerateMaster, input),
+    generateChapters: (input) => ipcRenderer.invoke(ipcChannels.outlineGenerateChapters, input),
+    refine: (input) => ipcRenderer.invoke(ipcChannels.outlineRefine, input),
+    undoRefine: (input) => ipcRenderer.invoke(ipcChannels.outlineUndoRefine, input),
+  },
+  chapterGen: {
+    fromOutline: (input) => ipcRenderer.invoke(ipcChannels.chapterGenerateFromOutline, input),
+    commitDraft: (input) => ipcRenderer.invoke(ipcChannels.chapterCommitDraft, input),
   },
 };
 

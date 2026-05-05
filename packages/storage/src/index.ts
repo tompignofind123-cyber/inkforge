@@ -31,3 +31,10 @@ export * from "./repositories/auto-writer-run-repo";
 // ----- M8 · 活人感 -----
 export * from "./repositories/achievement-repo";
 export * from "./repositories/character-letter-repo";
+// ----- Scene Bindings (ported from ainovel) -----
+export * from "./repositories/scene-binding-repo";
+// ----- Sample Library + RAG (ported from ainovel) -----
+export * from "./repositories/sample-lib-repo";
+export * from "./repositories/rag-repo";
+// ----- World Relationships (graph, ported from ainovel) -----
+export * from "./repositories/world-relationship-repo";

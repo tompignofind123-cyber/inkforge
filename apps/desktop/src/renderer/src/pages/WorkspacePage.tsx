@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ChapterRecord } from "@inkforge/shared";
 import { chapterApi, fsApi, llmApi, projectApi, providerApi, settingsApi } from "../lib/api";
@@ -13,6 +13,7 @@ import { StatusBar } from "../components/StatusBar";
 import { ProviderSwitcher } from "../components/ProviderSwitcher";
 import { ProviderSettingsPanel } from "../components/ProviderSettingsPanel";
 import { SettingsDialog } from "../components/SettingsDialog";
+import { ExportDialog } from "../components/ExportDialog";
 
 export function WorkspacePage(): JSX.Element {
   const queryClient = useQueryClient();
@@ -33,6 +34,7 @@ export function WorkspacePage(): JSX.Element {
   const setSettings = useAppStore((s) => s.setSettings);
   const settings = useAppStore((s) => s.settings);
 
+  const [exportOpen, setExportOpen] = useState(false);
   const projectsQuery = useQuery({ queryKey: ["projects"], queryFn: () => projectApi.list() });
   const providersQuery = useQuery({ queryKey: ["providers"], queryFn: () => providerApi.list() });
 
@@ -215,6 +217,14 @@ export function WorkspacePage(): JSX.Element {
           </button>
           <button
             className="rounded-md border border-ink-600 px-2 py-1 text-xs text-ink-300 hover:bg-ink-700"
+            onClick={() => setExportOpen(true)}
+            disabled={!currentProjectId}
+            title="导入 / 导出"
+          >
+            导出
+          </button>
+          <button
+            className="rounded-md border border-ink-600 px-2 py-1 text-xs text-ink-300 hover:bg-ink-700"
             onClick={() => openSettings(true)}
             title="设置 (Ctrl+,)"
           >
@@ -283,6 +293,14 @@ export function WorkspacePage(): JSX.Element {
       <StatusBar />
       <ProviderSettingsPanel />
       <SettingsDialog />
+      {currentProjectId ? (
+        <ExportDialog
+          projectId={currentProjectId}
+          open={exportOpen}
+          onClose={() => setExportOpen(false)}
+          onImported={() => queryClient.invalidateQueries({ queryKey: ["chapters"] })}
+        />
+      ) : null}
     </div>
   );
 }

@@ -18,7 +18,8 @@ export type MainView =
   | "review"
   | "bookshelf"
   | "achievement"
-  | "letters";
+  | "letters"
+  | "outline";
 
 export interface StreamingAnalysis {
   analysisId: string;
@@ -119,6 +120,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   uiLanguage: "zh",
   devModeEnabled: false,
   onboardingCompleted: false,
+  sceneRoutingMode: "basic",
 };
 
 export const useAppStore = create<AppState>((set) => ({

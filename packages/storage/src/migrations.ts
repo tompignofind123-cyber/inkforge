@@ -641,6 +641,164 @@ const migrations: Migration[] = [
       `);
     },
   },
+  {
+    // ===================================================================
+    // v16 · Scene Bindings (ported from ainovel)
+    //
+    // 双模式场景路由：basic（5 类）和 advanced（9 种）共存，由
+    // app_settings.sceneRoutingMode 决定生效模式，切换不丢失另一套配置。
+    //
+    // 每行代表一个 scene_key 的 provider/model 绑定（NULL 表示用默认）。
+    // ===================================================================
+    version: 16,
+    name: "scene_bindings_dual_mode",
+    up: (db) => {
+      const now = new Date().toISOString();
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS scene_bindings_basic (
+          scene_key TEXT PRIMARY KEY,
+          provider_id TEXT NULL,
+          model TEXT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY(provider_id) REFERENCES providers(id) ON DELETE SET NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS scene_bindings_advanced (
+          scene_key TEXT PRIMARY KEY,
+          provider_id TEXT NULL,
+          model TEXT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY(provider_id) REFERENCES providers(id) ON DELETE SET NULL
+        );
+      `);
+
+      const seedBasic = db.prepare(
+        `INSERT OR IGNORE INTO scene_bindings_basic (scene_key, updated_at) VALUES (?, ?)`,
+      );
+      const seedAdvanced = db.prepare(
+        `INSERT OR IGNORE INTO scene_bindings_advanced (scene_key, updated_at) VALUES (?, ?)`,
+      );
+      const basicKeys = [
+        "outline_generation",
+        "main_generation",
+        "extract",
+        "summarize",
+        "inline",
+      ];
+      const advancedKeys = [
+        "analyze",
+        "quick",
+        "chat",
+        "skill",
+        "tavern",
+        "auto-writer",
+        "review",
+        "daily-summary",
+        "letter",
+      ];
+      for (const key of basicKeys) seedBasic.run(key, now);
+      for (const key of advancedKeys) seedAdvanced.run(key, now);
+
+      // Seed default app_settings.sceneRoutingMode if absent
+      db.prepare(
+        `INSERT OR IGNORE INTO app_settings (key, value) VALUES ('sceneRoutingMode', 'basic')`,
+      ).run();
+    },
+  },
+  {
+    // ===================================================================
+    // v17 · Sample Library (ported from ainovel)
+    //
+    // 参考小说库：每个 lib 是一本导入的小说，按章节切块成 sample_chunks
+    // 用于 RAG 召回。CASCADE FK 确保删 lib 自动清 chunks。
+    // ===================================================================
+    version: 17,
+    name: "sample_library_rag",
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS sample_libs (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          author TEXT,
+          notes TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_sample_libs_project
+          ON sample_libs(project_id, updated_at DESC);
+
+        CREATE TABLE IF NOT EXISTS sample_chunks (
+          id TEXT PRIMARY KEY,
+          lib_id TEXT NOT NULL,
+          ordinal INTEGER NOT NULL,
+          chapter_title TEXT,
+          text TEXT NOT NULL,
+          FOREIGN KEY(lib_id) REFERENCES sample_libs(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_sample_chunks_lib
+          ON sample_chunks(lib_id, ordinal);
+      `);
+    },
+  },
+  {
+    // ===================================================================
+    // v18 · World Relationships (graph, ported from ainovel)
+    //
+    // 多态关系表：src/dst 端点既可以是 character 也可以是 world_entry。
+    // 由于多态无法 FK，src_id/dst_id 由应用层维护一致性（删 character /
+    // world_entry 时清理孤儿 relationships）。project_id 走 FK CASCADE。
+    // ===================================================================
+    version: 18,
+    name: "world_relationships",
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS world_relationships (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          src_kind TEXT NOT NULL CHECK(src_kind IN ('character', 'world_entry')),
+          src_id TEXT NOT NULL,
+          dst_kind TEXT NOT NULL CHECK(dst_kind IN ('character', 'world_entry')),
+          dst_id TEXT NOT NULL,
+          label TEXT,
+          weight INTEGER NOT NULL DEFAULT 5 CHECK(weight BETWEEN 1 AND 10),
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+          UNIQUE(project_id, src_kind, src_id, dst_kind, dst_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_world_rel_project
+          ON world_relationships(project_id);
+        CREATE INDEX IF NOT EXISTS idx_world_rel_src
+          ON world_relationships(project_id, src_kind, src_id);
+        CREATE INDEX IF NOT EXISTS idx_world_rel_dst
+          ON world_relationships(project_id, dst_kind, dst_id);
+      `);
+    },
+  },
+  {
+    // ===================================================================
+    // v19 · Project creative metadata + AI outline generation support
+    //
+    // Adds writing-context fields to projects (synopsis/genre/tags), the
+    // master outline text itself, plus undo snapshots for refine actions.
+    // Fields default to '' / '[]' so existing rows remain valid.
+    // ===================================================================
+    version: 19,
+    name: "project_creative_meta_for_outline_gen",
+    up: (db) => {
+      db.exec(`
+        ALTER TABLE projects ADD COLUMN synopsis TEXT NOT NULL DEFAULT '';
+        ALTER TABLE projects ADD COLUMN genre TEXT NOT NULL DEFAULT '';
+        ALTER TABLE projects ADD COLUMN sub_genre TEXT NOT NULL DEFAULT '';
+        ALTER TABLE projects ADD COLUMN tags TEXT NOT NULL DEFAULT '[]'
+          CHECK(json_valid(tags));
+        ALTER TABLE projects ADD COLUMN master_outline TEXT NOT NULL DEFAULT '';
+        ALTER TABLE projects ADD COLUMN pre_refine_master_outline TEXT;
+      `);
+    },
+  },
 ];
 
 export function runMigrations(db: DB): number {

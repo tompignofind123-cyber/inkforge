@@ -27,6 +27,7 @@ import {
   resolveProviderRecord,
   streamText,
 } from "./llm-runtime";
+import { resolveSceneBinding } from "./scene-binding-service";
 
 const CHUNK_CHANNEL: typeof ipcEventChannels.dailySummaryChunk = "daily:summary-chunk";
 const DONE_CHANNEL: typeof ipcEventChannels.dailySummaryDone = "daily:summary-done";
@@ -124,7 +125,12 @@ export async function startDailySummary(
     } satisfies DailySummaryDoneEvent);
     return { summaryId, status: "started" };
   }
-  const providerRecord = resolveProviderRecord(input.providerId);
+  const resolvedScene = resolveSceneBinding("daily-summary", {
+    explicitProviderId: input.providerId,
+  });
+  const providerRecord = resolveProviderRecord(
+    resolvedScene.providerId ?? input.providerId,
+  );
   if (!providerRecord) {
     emit(window, DONE_CHANNEL, {
       summaryId,

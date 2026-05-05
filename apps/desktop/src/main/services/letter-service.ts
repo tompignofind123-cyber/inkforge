@@ -26,6 +26,8 @@ import {
   reportProviderKeyResult,
   streamText,
 } from "./llm-runtime";
+import { resolveSceneBinding } from "./scene-binding-service";
+import { buildRagBlock } from "./rag-service";
 import { checkAchievements } from "./achievement-service";
 
 /* ============================================================
@@ -172,15 +174,20 @@ export async function generateLetter(
   const character = getNovelCharacterById(ctx.db, characterId);
   if (!character) throw new Error(`character_not_found:${characterId}`);
 
-  // provider 解析
+  // provider 解析（含 scene_binding 路由）
   const settings = getAppSettings(ctx.db);
-  const providerId = input.providerId ?? settings.activeProviderId ?? null;
+  const fallbackProviderId = input.providerId ?? settings.activeProviderId ?? null;
+  const resolvedScene = resolveSceneBinding("letter", {
+    explicitProviderId: input.providerId ?? null,
+  });
+  const providerId = resolvedScene.providerId ?? fallbackProviderId;
   if (!providerId) throw new Error("no_active_provider");
   const providerRecord = resolveProviderRecord(providerId);
   if (!providerRecord) throw new Error(`provider_not_found:${providerId}`);
   const pickedKey = await pickProviderKey(providerRecord);
   if (!pickedKey) throw new Error(`no_api_key:${providerId}`);
-  const model = input.model ?? providerRecord.defaultModel;
+  const model =
+    input.model ?? resolvedScene.model ?? providerRecord.defaultModel;
 
   // 章节摘要：只用标题（避免读 fs 增加复杂度）
   const chapters = listChapters(ctx.db, input.projectId);
@@ -191,7 +198,7 @@ export async function generateLetter(
     .join("\n");
 
   const tone = input.tone ?? pickRandomTone();
-  const userMessage = buildLetterUser({
+  const baseUserMessage = buildLetterUser({
     characterName: character.name,
     characterPersona: character.persona ?? "",
     characterBackstory: character.backstory ?? "",
@@ -199,6 +206,11 @@ export async function generateLetter(
     recentChapterExcerpt,
     toneHint: TONE_HINT[tone],
   });
+  // letter 自带 character 信息，避免 RAG 重复人物；只查 world + research + samples
+  const ragBlock = buildRagBlock(input.projectId, recentChapterExcerpt, {
+    characters: false,
+  });
+  const userMessage = ragBlock ? `${ragBlock}\n${baseUserMessage}` : baseUserMessage;
 
   let accumulated = "";
   let tokensIn = 0;

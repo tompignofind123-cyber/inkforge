@@ -8,7 +8,22 @@ type ProjectRow = {
   created_at: string;
   daily_goal: number;
   last_opened: string | null;
+  synopsis: string;
+  genre: string;
+  sub_genre: string;
+  tags: string;
+  master_outline: string;
+  pre_refine_master_outline: string | null;
 };
+
+function parseTags(raw: string): string[] {
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter((t): t is string => typeof t === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 function rowToRecord(row: ProjectRow): ProjectRecord {
   return {
@@ -18,6 +33,12 @@ function rowToRecord(row: ProjectRow): ProjectRecord {
     createdAt: row.created_at,
     dailyGoal: row.daily_goal,
     lastOpened: row.last_opened,
+    synopsis: row.synopsis ?? "",
+    genre: row.genre ?? "",
+    subGenre: row.sub_genre ?? "",
+    tags: parseTags(row.tags ?? "[]"),
+    masterOutline: row.master_outline ?? "",
+    preRefineMasterOutline: row.pre_refine_master_outline,
   };
 }
 
@@ -40,14 +61,9 @@ export function insertProject(db: DB, input: CreateProjectRow): ProjectRecord {
     created_at: createdAt,
     daily_goal: input.dailyGoal ?? 1000,
   });
-  return {
-    id: input.id,
-    name: input.name,
-    path: input.path,
-    createdAt,
-    dailyGoal: input.dailyGoal ?? 1000,
-    lastOpened: null,
-  };
+  const created = getProject(db, input.id);
+  if (!created) throw new Error("project insert failed");
+  return created;
 }
 
 export function listProjects(db: DB): ProjectRecord[] {
@@ -82,6 +98,58 @@ export function updateProject(db: DB, input: UpdateProjectInput): ProjectRecord 
     `UPDATE projects SET name = @name, daily_goal = @daily_goal WHERE id = @id`,
   ).run({ id: next.id, name: next.name, daily_goal: next.dailyGoal });
   return next;
+}
+
+export interface UpdateProjectMetaInput {
+  id: string;
+  synopsis?: string;
+  genre?: string;
+  subGenre?: string;
+  tags?: string[];
+  masterOutline?: string;
+  preRefineMasterOutline?: string | null;
+}
+
+/**
+ * Patch creative metadata. Only fields present in input are written.
+ * `tags` is JSON-stringified. `null` for preRefineMasterOutline clears the snapshot.
+ */
+export function updateProjectMeta(db: DB, input: UpdateProjectMetaInput): ProjectRecord {
+  const existing = getProject(db, input.id);
+  if (!existing) throw new Error(`Project not found: ${input.id}`);
+
+  const fields: string[] = [];
+  const params: Record<string, unknown> = { id: input.id };
+  if (input.synopsis !== undefined) {
+    fields.push("synopsis = @synopsis");
+    params.synopsis = input.synopsis;
+  }
+  if (input.genre !== undefined) {
+    fields.push("genre = @genre");
+    params.genre = input.genre;
+  }
+  if (input.subGenre !== undefined) {
+    fields.push("sub_genre = @sub_genre");
+    params.sub_genre = input.subGenre;
+  }
+  if (input.tags !== undefined) {
+    fields.push("tags = @tags");
+    params.tags = JSON.stringify(input.tags);
+  }
+  if (input.masterOutline !== undefined) {
+    fields.push("master_outline = @master_outline");
+    params.master_outline = input.masterOutline;
+  }
+  if (input.preRefineMasterOutline !== undefined) {
+    fields.push("pre_refine_master_outline = @pre_refine_master_outline");
+    params.pre_refine_master_outline = input.preRefineMasterOutline;
+  }
+  if (fields.length === 0) return existing;
+
+  db.prepare(`UPDATE projects SET ${fields.join(", ")} WHERE id = @id`).run(params);
+  const updated = getProject(db, input.id);
+  if (!updated) throw new Error("project meta update failed");
+  return updated;
 }
 
 export function deleteProject(db: DB, id: string): void {
