@@ -252,6 +252,11 @@ export const ipcChannels = {
   outlineRefine: "outline:refine",
   outlineUndoRefine: "outline:undo-refine",
   chapterGenerateFromOutline: "chapter:generate-from-outline",
+  // ----- v20: Materials (独立顶级素材库) -----
+  materialList: "material:list",
+  materialCreate: "material:create",
+  materialUpdate: "material:update",
+  materialDelete: "material:delete",
   chapterCommitDraft: "chapter:commit-draft",
   // ----- Provider remote model list (ainovel-style discovery) -----
   providerListRemoteModels: "provider:list-remote-models",
@@ -2226,6 +2231,7 @@ export interface ProjectUpdateMetaInput {
   genre?: string;
   subGenre?: string;
   tags?: string[];
+  globalWorldview?: string;
 }
 
 export interface OutlineGenerateMasterInput {
@@ -2380,5 +2386,56 @@ export interface IpcRequestMap {
   [ipcChannels.providerListRemoteModels]: {
     req: ProviderListRemoteModelsInput;
     res: ProviderListRemoteModelsResponse;
+  };
+}
+
+// =====================================================================
+// v20 · Materials (素材库) IPC contract
+// =====================================================================
+
+export interface MaterialListInput {
+  projectId: string;
+  kind?: import("./domain").MaterialKind;
+}
+
+export type MaterialListResponse = import("./domain").MaterialRecord[];
+
+export interface MaterialCreateInput {
+  projectId: string;
+  kind: import("./domain").MaterialKind;
+  title: string;
+  content?: string;
+  tags?: string[];
+}
+
+export interface MaterialUpdateInput {
+  id: string;
+  kind?: import("./domain").MaterialKind;
+  title?: string;
+  content?: string;
+  tags?: string[];
+}
+
+export interface MaterialDeleteInput {
+  id: string;
+}
+
+export interface MaterialDeleteResponse {
+  id: string;
+}
+
+export interface IpcRequestMap {
+  [ipcChannels.materialList]: { req: MaterialListInput; res: MaterialListResponse };
+  [ipcChannels.materialCreate]: {
+    req: MaterialCreateInput;
+    res: import("./domain").MaterialRecord;
+  };
+  [ipcChannels.materialUpdate]: {
+    req: MaterialUpdateInput;
+    res: import("./domain").MaterialRecord;
+  };
+  [ipcChannels.materialDelete]: {
+    req: MaterialDeleteInput;
+    res: MaterialDeleteResponse;
   };
 }

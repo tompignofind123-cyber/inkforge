@@ -34,6 +34,7 @@ import { registerSampleLibHandlers } from "./sample-lib";
 import { registerWorldRelationshipHandlers } from "./world-relationship";
 import { registerProjectExportHandlers } from "./project-export";
 import { registerOutlineGenerationHandlers } from "./outline-generation";
+import { registerMaterialHandlers } from "./material";
 import { startDailyReminder } from "../services/chapter-log-service";
 
 export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void {
@@ -80,4 +81,6 @@ export function registerIpcHandlers(getWindow: () => BrowserWindow | null): void
   registerProjectExportHandlers(getWindow);
   // ----- Module 6: AI outline + chapter generation (ainovel-style) -----
   registerOutlineGenerationHandlers();
+  // ----- v20: Materials (素材库) -----
+  registerMaterialHandlers();
 }

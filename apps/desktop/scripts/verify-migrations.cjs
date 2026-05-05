@@ -55,6 +55,8 @@ const EXPECTED_TABLES = [
   "sample_chunks",
   // ----- World Relationships (v18, ported from ainovel) -----
   "world_relationships",
+  // ----- v20: Materials (素材库, 独立顶级页) -----
+  "materials",
 ];
 
 const EXPECTED_INDEXES = [
@@ -101,9 +103,12 @@ const EXPECTED_INDEXES = [
   "idx_world_rel_project",
   "idx_world_rel_src",
   "idx_world_rel_dst",
+  // ----- v20: Materials -----
+  "idx_materials_project_updated",
+  "idx_materials_project_kind",
 ];
 
-const EXPECTED_MAX_VERSION = 19;
+const EXPECTED_MAX_VERSION = 20;
 const EXPECTED_VERSIONS = Array.from(
   { length: EXPECTED_MAX_VERSION },
   (_, i) => i + 1,

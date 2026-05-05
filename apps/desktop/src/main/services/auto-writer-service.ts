@@ -9,8 +9,10 @@ import {
   insertAutoWriterRun,
   listAutoWriterRunsByChapter,
   listAutoWriterRunsByProject,
+  listChapters,
   listNovelCharacters,
   listWorldEntries,
+  ragSearchSampleChunks,
   readChapterFile,
   setChapterOrigin,
   updateAutoWriterRun,
@@ -26,6 +28,7 @@ import {
   type OocFinding,
   type PipelineDeps,
   type SnapshotHookInput,
+  type StyleSampleRef,
 } from "@inkforge/auto-writer-engine";
 import {
   ipcEventChannels,
@@ -36,8 +39,10 @@ import {
   type AutoWriterRunRecord,
   type AutoWriterSnapshotEvent,
   type AutoWriterStartInput,
+  type ChapterRecord,
   type ChapterSnapshotRecord,
 } from "@inkforge/shared";
+import type { DB } from "@inkforge/storage";
 import { getAppContext } from "./app-state";
 import { logger } from "./logger";
 import {
@@ -75,6 +80,76 @@ function emitToWindow<T>(
 
 function countWords(text: string): number {
   return text.replace(/\s+/g, "").length;
+}
+
+/**
+ * v20: Build previous-chapters context for AutoWriter.
+ * Strategy: take up to 3 chapters before the current one (by `order`), read
+ * their .md content, and excerpt the last ~600 chars of each (the "tail" is
+ * what matters for continuation). Total cap ~3000 chars to keep prompt cheap.
+ *
+ * Returns "" if no preceding chapters or all empty.
+ */
+function buildPreviousChaptersText(
+  db: DB,
+  projectPath: string,
+  current: ChapterRecord,
+): string {
+  const all = listChapters(db, current.projectId);
+  const preceding = all
+    .filter((c) => c.order < current.order)
+    .sort((a, b) => a.order - b.order)
+    .slice(-3);
+  if (preceding.length === 0) return "";
+
+  const blocks: string[] = [];
+  for (const ch of preceding) {
+    let body = "";
+    try {
+      body = readChapterFile(projectPath, ch.filePath) ?? "";
+    } catch {
+      body = "";
+    }
+    const trimmed = body.replace(/\s+/g, " ").trim();
+    if (!trimmed) continue;
+    // Take the tail of each chapter; the head was set up earlier.
+    const tail = trimmed.length > 600 ? "…" + trimmed.slice(-600) : trimmed;
+    blocks.push(`【第${ch.order}章 · ${ch.title}（节选）】\n${tail}`);
+  }
+  return blocks.join("\n\n");
+}
+
+/**
+ * v20: Pull style sample chunks via RAG. Use the user's chapter ideas as the
+ * query so chunks roughly aligned with the upcoming scene get picked.
+ * Returns up to 3 references (cheap; Critic will use them too).
+ */
+function buildStyleSamples(
+  db: DB,
+  projectId: string,
+  userIdeas: string,
+): StyleSampleRef[] {
+  const trimmed = (userIdeas ?? "").trim();
+  if (!trimmed) return [];
+  // Use 2-3 keywords from ideas as queries (very simple split).
+  const queries = trimmed
+    .split(/[。！？\.\!\?\n]/)
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 4 && s.length <= 80)
+    .slice(0, 3);
+  if (queries.length === 0) return [];
+
+  let hits: { libTitle: string; libAuthor: string | null; chapterTitle: string | null; text: string }[] = [];
+  try {
+    hits = ragSearchSampleChunks(db, projectId, queries, 3) as typeof hits;
+  } catch (error) {
+    logger.warn("auto-writer: ragSearchSampleChunks failed", error);
+    return [];
+  }
+  return hits.slice(0, 3).map((h) => ({
+    source: [h.libTitle, h.libAuthor, h.chapterTitle].filter(Boolean).join(" · "),
+    excerpt: (h.text ?? "").slice(0, 600),
+  }));
 }
 
 export async function startAutoWriter(
@@ -126,6 +201,15 @@ export async function startAutoWriter(
   const characters = listNovelCharacters(ctx.db, input.projectId);
   const worldEntries = listWorldEntries(ctx.db, { projectId: input.projectId });
   const existingChapterText = readChapterFile(project.path, chapter.filePath);
+
+  // ----- v20: per-book global worldview + cross-chapter context + style samples -----
+  const globalWorldview = (project.globalWorldview ?? "").trim();
+  const previousChaptersText = buildPreviousChaptersText(
+    ctx.db,
+    project.path,
+    chapter,
+  );
+  const styleSamples = buildStyleSamples(ctx.db, project.id, input.userIdeas);
 
   const deps: PipelineDeps = {
     invokeAgent: async (agentInput, _onDelta) => {
@@ -234,6 +318,9 @@ export async function startAutoWriter(
           chapterTitle: chapter.title,
           characters,
           worldEntries,
+          globalWorldview,
+          previousChaptersText,
+          styleSamples,
         },
         deps,
       );

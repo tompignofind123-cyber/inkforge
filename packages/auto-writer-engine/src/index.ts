@@ -13,6 +13,7 @@ export type {
   OocFinding,
   PhaseEmit,
   RoleResolver,
+  StyleSampleRef,
 } from "./types";
 export { makeRoleResolver } from "./types";
 
@@ -53,4 +54,4 @@ export {
 export { UserInterruptQueue } from "./user-interrupt-queue";
 
 // ---- pipeline orchestrator ----
-export { runAutoWriterPipeline } from "./pipeline-orchestrator";
+export { runAutoWriterPipeline, normalizeNovelParagraphs } from "./pipeline-orchestrator";

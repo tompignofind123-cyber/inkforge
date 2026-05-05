@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ChapterOrigin, ChapterRecord } from "@inkforge/shared";
-import { originTagApi } from "../../lib/api";
+import { chapterApi, originTagApi } from "../../lib/api";
 import { AutoWriterPanel } from "../auto-writer/AutoWriterPanel";
 import { ChapterLogDrawer } from "../log/ChapterLogDrawer";
 import { SnapshotMenu } from "../snapshot/SnapshotMenu";
@@ -28,6 +28,8 @@ export function ChapterListItem({
   const [snapshotOpen, setSnapshotOpen] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const [autoWriterOpen, setAutoWriterOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameDraft, setRenameDraft] = useState(chapter.title);
 
   const tagQuery = useQuery({
     queryKey: ["chapterOrigin", chapter.id],
@@ -44,20 +46,70 @@ export function ChapterListItem({
     },
   });
 
+  const renameMut = useMutation({
+    mutationFn: (title: string) =>
+      chapterApi.update({ id: chapter.id, title }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["bookshelf-books"] });
+      setRenaming(false);
+    },
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: () => chapterApi.delete({ id: chapter.id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["chapters", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["bookshelf-books"] });
+    },
+  });
+
   const origin: ChapterOrigin = tagQuery.data?.origin ?? "manual";
   const badge = ORIGIN_BADGE[origin];
+
+  const commitRename = (): void => {
+    const next = renameDraft.trim();
+    if (!next || next === chapter.title) {
+      setRenaming(false);
+      setRenameDraft(chapter.title);
+      return;
+    }
+    renameMut.mutate(next);
+  };
 
   return (
     <li className="relative flex flex-col gap-1 border-b border-ink-700/50 px-3 py-2 hover:bg-ink-800/40">
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => onOpen?.(chapter)}
-          className="flex-1 truncate text-left text-sm text-ink-100 hover:text-amber-200"
-          title={chapter.title}
-        >
-          {chapter.title || "（未命名）"}
-        </button>
+        {renaming ? (
+          <input
+            type="text"
+            autoFocus
+            value={renameDraft}
+            onChange={(e) => setRenameDraft(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitRename();
+              if (e.key === "Escape") {
+                setRenameDraft(chapter.title);
+                setRenaming(false);
+              }
+            }}
+            className="flex-1 rounded border border-amber-500/40 bg-ink-900 px-2 py-1 text-sm text-ink-100 focus:outline-none"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => onOpen?.(chapter)}
+            onDoubleClick={() => {
+              setRenameDraft(chapter.title);
+              setRenaming(true);
+            }}
+            className="flex-1 truncate text-left text-sm text-ink-100 hover:text-amber-200"
+            title={`${chapter.title}（双击改名）`}
+          >
+            {chapter.title || "（未命名）"}
+          </button>
+        )}
         <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${badge.cls}`}>
           {badge.label}
         </span>
@@ -101,6 +153,33 @@ export function ChapterListItem({
             title="章节快照"
           >
             ↶ 快照
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRenameDraft(chapter.title);
+              setRenaming(true);
+            }}
+            className="rounded bg-ink-700 px-2 py-0.5 text-[11px] text-ink-300 hover:bg-sky-500/30 hover:text-sky-100"
+            title="改名"
+          >
+            ✏
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                window.confirm(
+                  `删除章节《${chapter.title}》？此操作不会删除磁盘上的 .md 文件。`,
+                )
+              ) {
+                deleteMut.mutate();
+              }
+            }}
+            className="rounded bg-ink-700 px-2 py-0.5 text-[11px] text-ink-300 hover:bg-rose-500/30 hover:text-rose-100"
+            title="删除章节"
+          >
+            🗑
           </button>
         </div>
       </div>

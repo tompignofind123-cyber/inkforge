@@ -20,6 +20,9 @@ const ITEMS: NavItem[] = [
   { view: "bookshelf", icon: "📖", label: "书房", shortcut: "Ctrl+8" },
   { view: "letters", icon: "📬", label: "来信", shortcut: "Ctrl+9" },
   { view: "achievement", icon: "🏆", label: "成就", shortcut: "Ctrl+0" },
+  // ----- v20: 独立 AutoWriter + 素材库 -----
+  { view: "auto-writer", icon: "🤖", label: "全自动", shortcut: "Ctrl+Shift+A" },
+  { view: "materials", icon: "🗂", label: "素材库", shortcut: "Ctrl+M" },
 ];
 
 export function ActivityBar(): JSX.Element {

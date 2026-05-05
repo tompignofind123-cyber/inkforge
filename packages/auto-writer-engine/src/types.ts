@@ -54,6 +54,18 @@ export interface PipelineRunInput {
   characters: NovelCharacterRecord[];
   /** 世界观条目（OOC 检查用） */
   worldEntries: WorldEntryRecord[];
+  // ----- v20: 新增上下文（cross-chapter / global worldview / sample style） -----
+  /** 全书层面的世界观大纲（纯文本），来自 projects.global_worldview。 */
+  globalWorldview?: string;
+  /** 前情提要：上 N 章摘要 / 原文片段。 */
+  previousChaptersText?: string;
+  /** 文风参考样本（来自 sample_libs / 用户手动选定）。 */
+  styleSamples?: StyleSampleRef[];
+}
+
+export interface StyleSampleRef {
+  source: string;
+  excerpt: string;
 }
 
 export interface AgentCallInput {
@@ -122,6 +134,8 @@ export interface OocFinding {
   severity: "info" | "warn" | "error";
   excerpt: string;
   suggestion: string;
+  /** v20: Critic 给出的本段总体评分 0-10。可选（旧 LLM 不返回时省略）。 */
+  score?: number;
 }
 
 export interface PhaseEmit {

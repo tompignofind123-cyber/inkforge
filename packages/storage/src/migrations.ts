@@ -799,6 +799,40 @@ const migrations: Migration[] = [
       `);
     },
   },
+  {
+    // ===================================================================
+    // v20 · Per-book global worldview + standalone materials library
+    //
+    // - projects.global_worldview: free-form prose blob, fed into AutoWriter
+    //   Writer/Critic prompts so that every chapter shares the same world.
+    // - materials: a top-level "素材库" backing store for inspiration notes,
+    //   character fragments, scratch ideas etc. (orthogonal to the existing
+    //   sample_libs / world_entries / research_notes which serve other roles).
+    // ===================================================================
+    version: 20,
+    name: "global_worldview_and_materials",
+    up: (db) => {
+      db.exec(`
+        ALTER TABLE projects ADD COLUMN global_worldview TEXT NOT NULL DEFAULT '';
+
+        CREATE TABLE IF NOT EXISTS materials (
+          id TEXT PRIMARY KEY,
+          project_id TEXT NOT NULL,
+          kind TEXT NOT NULL CHECK(kind IN ('note','idea','fragment','reference')),
+          title TEXT NOT NULL,
+          content TEXT NOT NULL DEFAULT '',
+          tags TEXT NOT NULL DEFAULT '[]' CHECK(json_valid(tags)),
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+          FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_materials_project_updated
+          ON materials(project_id, updated_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_materials_project_kind
+          ON materials(project_id, kind);
+      `);
+    },
+  },
 ];
 
 export function runMigrations(db: DB): number {

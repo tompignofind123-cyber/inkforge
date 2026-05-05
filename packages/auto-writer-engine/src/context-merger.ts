@@ -4,13 +4,38 @@ import type {
   WorldEntryRecord,
 } from "@inkforge/shared";
 import { AGENT_SYSTEM_PROMPTS, rosterToText, worldToText } from "./agent-roles";
+import type { StyleSampleRef } from "./types";
 
 /**
  * 把多份资料拼装成一次 LLM 调用的 user prompt。
- * 共享上下文 = chapterTitle + 已写正文摘要 + 人物档案 + 世界观 + 上一段 critic + 用户介入。
+ * 共享上下文 = chapterTitle + 已写正文摘要 + 人物档案 + 世界观 + 上一段 critic + 用户介入
+ *           + 全局世界观（v20）+ 前情提要（v20）+ 文风样本（v20）。
  */
 
-export interface BuildPlannerPromptInput {
+/** v20: 共享的「书级上下文」字段。Planner / Writer / Critic 都吃这块。 */
+interface SharedBookContext {
+  globalWorldview?: string;
+  previousChaptersText?: string;
+  styleSamples?: StyleSampleRef[];
+}
+
+function appendSharedBookContext(lines: string[], ctx: SharedBookContext): void {
+  if (ctx.globalWorldview && ctx.globalWorldview.trim()) {
+    lines.push(`# 本书世界观（全局）\n${ctx.globalWorldview.trim()}`);
+  }
+  if (ctx.previousChaptersText && ctx.previousChaptersText.trim()) {
+    lines.push(`# 前情提要（已写章节摘要）\n${ctx.previousChaptersText.trim()}`);
+  }
+  if (ctx.styleSamples && ctx.styleSamples.length > 0) {
+    const body = ctx.styleSamples
+      .slice(0, 5)
+      .map((s, i) => `【样本 ${i + 1}｜${s.source}】\n${s.excerpt.slice(0, 600)}`)
+      .join("\n\n");
+    lines.push(`# 文笔参考样本（学习句式与意象密度，禁止照搬词组）\n${body}`);
+  }
+}
+
+export interface BuildPlannerPromptInput extends SharedBookContext {
   userIdeas: string;
   chapterTitle: string;
   existingChapterText: string;
@@ -40,12 +65,13 @@ export function buildPlannerUser(input: BuildPlannerPromptInput): string {
       `# 章节已有正文（续写起点）\n${truncateForContext(input.existingChapterText, 1500)}`,
     );
   }
+  appendSharedBookContext(lines, input);
   lines.push(`# 人物档案\n${rosterToText(input.characters)}`);
   lines.push(`# 世界观\n${worldToText(input.worldEntries)}`);
   return lines.join("\n\n");
 }
 
-export interface BuildWriterPromptInput {
+export interface BuildWriterPromptInput extends SharedBookContext {
   beat: string;
   segmentIndex: number;
   targetLength: number;
@@ -98,6 +124,7 @@ export function buildWriterUser(input: BuildWriterPromptInput): string {
     );
   }
 
+  appendSharedBookContext(lines, input);
   lines.push(`# 人物档案\n${rosterToText(input.characters)}`);
   lines.push(`# 世界观\n${worldToText(input.worldEntries)}`);
   return lines.join("\n\n");
@@ -107,7 +134,7 @@ export function buildCriticSystem(): string {
   return AGENT_SYSTEM_PROMPTS.critic;
 }
 
-export interface BuildCriticPromptInput {
+export interface BuildCriticPromptInput extends SharedBookContext {
   segmentText: string;
   segmentIndex: number;
   beat: string;
@@ -128,6 +155,7 @@ export function buildCriticUser(input: BuildCriticPromptInput): string {
         input.recentCorrections.map((c) => `- ${c.content}`).join("\n"),
     );
   }
+  appendSharedBookContext(lines, input);
   lines.push(`# 人物档案\n${rosterToText(input.characters)}`);
   lines.push(`# 世界观\n${worldToText(input.worldEntries)}`);
   return lines.join("\n\n");

@@ -282,6 +282,35 @@ export function EditorPane({ chapter, providers }: EditorPaneProps): JSX.Element
           <span>汉字 {stats.chinese}</span>
           <span>词 {stats.words}</span>
           <span>合计 {stats.graphemes}</span>
+          {/* v20: 显式撤回/重做按钮（覆盖手输 / 黏贴 / AI 润色，所有 TipTap 事务都计入 history） */}
+          <div className="flex items-center gap-0.5">
+            <button
+              className="rounded-md border border-ink-600 px-2 py-1 text-xs hover:bg-ink-700 disabled:opacity-40"
+              onClick={() => {
+                const e = editorInstance as unknown as {
+                  commands?: { undo?: () => boolean };
+                } | null;
+                e?.commands?.undo?.();
+              }}
+              disabled={!editorInstance}
+              title="撤回（Ctrl+Z）— 包括手输、黏贴、AI 润色"
+            >
+              ↶ 撤回
+            </button>
+            <button
+              className="rounded-md border border-ink-600 px-2 py-1 text-xs hover:bg-ink-700 disabled:opacity-40"
+              onClick={() => {
+                const e = editorInstance as unknown as {
+                  commands?: { redo?: () => boolean };
+                } | null;
+                e?.commands?.redo?.();
+              }}
+              disabled={!editorInstance}
+              title="重做（Ctrl+Shift+Z）"
+            >
+              ↷ 重做
+            </button>
+          </div>
           <button
             className="rounded-md border border-ink-600 px-2 py-1 text-xs hover:bg-ink-700"
             onClick={handleExport}

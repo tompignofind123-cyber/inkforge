@@ -19,7 +19,9 @@ export type MainView =
   | "bookshelf"
   | "achievement"
   | "letters"
-  | "outline";
+  | "outline"
+  | "auto-writer"
+  | "materials";
 
 export interface StreamingAnalysis {
   analysisId: string;

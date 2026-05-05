@@ -637,3 +637,25 @@ import type {
   ProviderListRemoteModelsInput,
   ProviderListRemoteModelsResponse,
 } from "./ipc";
+
+// =====================================================================
+// v20 · Materials (素材库) preload-injected namespace
+// =====================================================================
+import type {
+  MaterialCreateInput,
+  MaterialDeleteInput,
+  MaterialDeleteResponse,
+  MaterialListInput,
+  MaterialListResponse,
+  MaterialUpdateInput,
+} from "./ipc";
+import type { MaterialRecord } from "./domain";
+
+export interface InkforgeApi {
+  material: {
+    list(input: MaterialListInput): Promise<MaterialListResponse>;
+    create(input: MaterialCreateInput): Promise<MaterialRecord>;
+    update(input: MaterialUpdateInput): Promise<MaterialRecord>;
+    delete(input: MaterialDeleteInput): Promise<MaterialDeleteResponse>;
+  };
+}

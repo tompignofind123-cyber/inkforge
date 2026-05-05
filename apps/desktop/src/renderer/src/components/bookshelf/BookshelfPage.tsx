@@ -1,13 +1,16 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { ChapterOrigin, ChapterRecord } from "@inkforge/shared";
+import type { BookSummary, ChapterOrigin, ChapterRecord, ProjectRecord } from "@inkforge/shared";
 import { bookshelfApi, chapterApi, originTagApi } from "../../lib/api";
 import { useBookshelfStore } from "../../stores/bookshelf-store";
 import { BookHeader } from "./BookHeader";
 import { BookListGrid } from "./BookListGrid";
+import { BookSettingsDialog } from "./BookSettingsDialog";
 import { BookTabsBar } from "./BookTabsBar";
 import { ChapterListItem } from "./ChapterListItem";
 import { ChapterOriginTabs } from "./ChapterOriginTabs";
+import { DeleteBookConfirmDialog } from "./DeleteBookConfirmDialog";
+import { EditBookDialog } from "./EditBookDialog";
 import { NewBookDialog } from "./NewBookDialog";
 
 export function BookshelfPage(): JSX.Element {
@@ -17,6 +20,10 @@ export function BookshelfPage(): JSX.Element {
   const setOriginFilter = useBookshelfStore((s) => s.setOriginFilter);
   const [showPicker, setShowPicker] = useState(false);
   const [showNewBook, setShowNewBook] = useState(false);
+  // v20: 三个新对话框的目标书 / null = 关闭
+  const [renameTarget, setRenameTarget] = useState<ProjectRecord | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ProjectRecord | null>(null);
+  const [settingsTarget, setSettingsTarget] = useState<ProjectRecord | null>(null);
 
   const booksQuery = useQuery({
     queryKey: ["bookshelf-books"],
@@ -92,6 +99,9 @@ export function BookshelfPage(): JSX.Element {
               setShowPicker(false);
             }}
             onCreateBook={() => setShowNewBook(true)}
+            onRenameBook={(b: BookSummary) => setRenameTarget(b.project)}
+            onDeleteBook={(b: BookSummary) => setDeleteTarget(b.project)}
+            onOpenSettings={(b: BookSummary) => setSettingsTarget(b.project)}
             onClose={
               tabs.length > 0 && activeProjectId
                 ? () => setShowPicker(false)
@@ -100,7 +110,11 @@ export function BookshelfPage(): JSX.Element {
           />
         ) : activeBook ? (
           <div className="flex min-h-0 flex-1 flex-col">
-            <BookHeader book={activeBook} />
+            <BookHeader
+              book={activeBook}
+              onRename={() => setRenameTarget(activeBook.project)}
+              onOpenSettings={() => setSettingsTarget(activeBook.project)}
+            />
             <ChapterOriginTabs
               active={originFilter}
               counts={activeBook.originCounts}
@@ -137,6 +151,18 @@ export function BookshelfPage(): JSX.Element {
           openBookTab(projectId);
           setShowPicker(false);
         }}
+      />
+      <EditBookDialog
+        project={renameTarget}
+        onClose={() => setRenameTarget(null)}
+      />
+      <DeleteBookConfirmDialog
+        project={deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+      />
+      <BookSettingsDialog
+        project={settingsTarget}
+        onClose={() => setSettingsTarget(null)}
       />
     </div>
   );

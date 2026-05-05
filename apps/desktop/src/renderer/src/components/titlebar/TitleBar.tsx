@@ -35,6 +35,11 @@ const VIEW_LABEL: Record<string, { icon: string; label: string }> = {
   research: { icon: "📚", label: "资料" },
   review: { icon: "📊", label: "审查" },
   bookshelf: { icon: "📖", label: "书房" },
+  outline: { icon: "📋", label: "大纲" },
+  letters: { icon: "📬", label: "来信" },
+  achievement: { icon: "🏆", label: "成就" },
+  "auto-writer": { icon: "🤖", label: "全自动" },
+  materials: { icon: "🗂", label: "素材库" },
 };
 
 export function TitleBar(): JSX.Element {

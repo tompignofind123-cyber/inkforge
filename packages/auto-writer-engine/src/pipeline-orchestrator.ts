@@ -58,10 +58,41 @@ function tryParseBeats(raw: string): PlannerBeat[] {
   return result;
 }
 
-/** 段落之间的拼接：插一个换行。 */
+/**
+ * v20: 把 LLM 输出的「砖头文字」规整成有空行分段的小说体。
+ * - 折叠 3+ 连续换行 → 2 个
+ * - 去除中文标点前后多余空格
+ * - 已经分段良好的输入幂等
+ * - 对话行（"...」 / "..." / "..." 开头）前后保证空行
+ */
+export function normalizeNovelParagraphs(text: string): string {
+  if (!text) return "";
+  let out = text.replace(/\r\n/g, "\n");
+  // 中文标点前后空格收敛
+  out = out.replace(/[ \t]+([，。！？、；：「」『』""''])/g, "$1");
+  out = out.replace(/([，。！？、；：「」『』""''])[ \t]+/g, "$1");
+  // 三个以上换行 → 两个
+  out = out.replace(/\n{3,}/g, "\n\n");
+  // 在对话行前补空行
+  out = out.replace(
+    /([^\n])\n([ \t]*[「『""].*?[」』""])/g,
+    "$1\n\n$2",
+  );
+  // 段首多余空格剔除（保留单个 ASCII 空格的情况：诗体）
+  out = out
+    .split("\n")
+    .map((line) =>
+      /^[\u3000\s]+[\u4e00-\u9fff]/.test(line) ? line.trimStart() : line,
+    )
+    .join("\n");
+  return out.trim();
+}
+
+/** 段落之间的拼接：插一个空行；并对最终拼接结果做 normalize。 */
 function joinChapter(prev: string, segmentText: string): string {
-  if (!prev.trim()) return segmentText.trimEnd() + "\n";
-  return prev.trimEnd() + "\n\n" + segmentText.trimEnd() + "\n";
+  const cleanedSegment = normalizeNovelParagraphs(segmentText);
+  if (!prev.trim()) return cleanedSegment + "\n";
+  return normalizeNovelParagraphs(prev.trimEnd() + "\n\n" + cleanedSegment) + "\n";
 }
 
 /**
@@ -105,6 +136,9 @@ export async function runAutoWriterPipeline(
       worldEntries: input.worldEntries,
       maxSegments: input.maxSegments,
       recentCorrections: initialInterrupts,
+      globalWorldview: input.globalWorldview,
+      previousChaptersText: input.previousChaptersText,
+      styleSamples: input.styleSamples,
     }),
     stats,
   );
@@ -172,6 +206,9 @@ export async function runAutoWriterPipeline(
           reflectorMemo,
           userInterrupts: pendingCorrections,
           rewriteOf: seg.rewriteCount > 0 ? segmentText : null,
+          globalWorldview: input.globalWorldview,
+          previousChaptersText: input.previousChaptersText,
+          styleSamples: input.styleSamples,
         }),
         stats,
       );
@@ -223,6 +260,9 @@ export async function runAutoWriterPipeline(
           characters: input.characters,
           worldEntries: input.worldEntries,
           recentCorrections: deps.drainInterrupts(),
+          globalWorldview: input.globalWorldview,
+          previousChaptersText: input.previousChaptersText,
+          styleSamples: input.styleSamples,
         }),
         stats,
       );
@@ -249,7 +289,7 @@ export async function runAutoWriterPipeline(
       });
 
       if (
-        shouldRewriteFromFindings(findings) &&
+        shouldRewriteFromFindings(findings, { minScore: 6 }) &&
         seg.rewriteCount < input.maxRewritesPerSegment
       ) {
         // ---------- Rewrite path ----------

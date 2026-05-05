@@ -11,6 +11,8 @@ import { WorldPage } from "./pages/WorldPage";
 import { OutlinePage } from "./pages/OutlinePage";
 import { ResearchPage } from "./pages/ResearchPage";
 import { ReviewPage } from "./pages/ReviewPage";
+import { AutoWriterPage } from "./pages/AutoWriterPage";
+import { MaterialsPage } from "./pages/MaterialsPage";
 import { ActivityBar } from "./components/ActivityBar";
 import { AchievementHallPage } from "./pages/AchievementHallPage";
 import { LetterInboxPage } from "./pages/LetterInboxPage";
@@ -44,6 +46,34 @@ export function App(): JSX.Element {
     document.documentElement.classList.remove("theme-light", "theme-dark");
     document.documentElement.classList.add(theme);
   }, [settings.theme]);
+
+  // v20: 全局快捷键 — Ctrl+Shift+A → AutoWriter，Ctrl+M → 素材库
+  useEffect(() => {
+    const setMainView = useAppStore.getState().setMainView;
+    const onKey = (e: KeyboardEvent): void => {
+      // 不要拦截输入框 / textarea / contenteditable 中的按键
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "A" || e.key === "a")) {
+        e.preventDefault();
+        setMainView("auto-writer");
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === "M" || e.key === "m")) {
+        e.preventDefault();
+        setMainView("materials");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const providersQuery = useQuery({
     queryKey: ["providers"],
@@ -121,6 +151,8 @@ export function App(): JSX.Element {
               {mainView === "achievement" && <AchievementHallPage />}
               {mainView === "letters" && <LetterInboxPage />}
               {mainView === "outline" && <OutlinePage />}
+              {mainView === "auto-writer" && <AutoWriterPage />}
+              {mainView === "materials" && <MaterialsPage />}
             </ErrorBoundary>
           </div>
         </div>

@@ -399,6 +399,22 @@ export const worldRelationshipApi = {
   delete: (input: import("@inkforge/shared").WorldRelationshipDeleteInput): Promise<{ id: string }> => api().worldRelationship.delete(input),
 };
 
+// ----- v20: Materials (素材库) -----
+export const materialApi = {
+  list: (
+    input: import("@inkforge/shared").MaterialListInput,
+  ): Promise<import("@inkforge/shared").MaterialListResponse> => api().material.list(input),
+  create: (
+    input: import("@inkforge/shared").MaterialCreateInput,
+  ): Promise<import("@inkforge/shared").MaterialRecord> => api().material.create(input),
+  update: (
+    input: import("@inkforge/shared").MaterialUpdateInput,
+  ): Promise<import("@inkforge/shared").MaterialRecord> => api().material.update(input),
+  delete: (
+    input: import("@inkforge/shared").MaterialDeleteInput,
+  ): Promise<import("@inkforge/shared").MaterialDeleteResponse> => api().material.delete(input),
+};
+
 // ----- Project Export + Chapter Bulk Import (ported from ainovel) -----
 export const projectExportApi = {
   txt: (input: import("@inkforge/shared").ProjectExportInput): Promise<import("@inkforge/shared").ProjectExportResponse> => api().projectExport.txt(input),

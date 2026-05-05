@@ -14,6 +14,7 @@ type ProjectRow = {
   tags: string;
   master_outline: string;
   pre_refine_master_outline: string | null;
+  global_worldview: string;
 };
 
 function parseTags(raw: string): string[] {
@@ -39,6 +40,7 @@ function rowToRecord(row: ProjectRow): ProjectRecord {
     tags: parseTags(row.tags ?? "[]"),
     masterOutline: row.master_outline ?? "",
     preRefineMasterOutline: row.pre_refine_master_outline,
+    globalWorldview: row.global_worldview ?? "",
   };
 }
 
@@ -108,6 +110,7 @@ export interface UpdateProjectMetaInput {
   tags?: string[];
   masterOutline?: string;
   preRefineMasterOutline?: string | null;
+  globalWorldview?: string;
 }
 
 /**
@@ -143,6 +146,10 @@ export function updateProjectMeta(db: DB, input: UpdateProjectMetaInput): Projec
   if (input.preRefineMasterOutline !== undefined) {
     fields.push("pre_refine_master_outline = @pre_refine_master_outline");
     params.pre_refine_master_outline = input.preRefineMasterOutline;
+  }
+  if (input.globalWorldview !== undefined) {
+    fields.push("global_worldview = @global_worldview");
+    params.global_worldview = input.globalWorldview;
   }
   if (fields.length === 0) return existing;
 

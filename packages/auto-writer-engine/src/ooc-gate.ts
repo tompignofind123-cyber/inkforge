@@ -44,10 +44,15 @@ export function parseFindings(raw: string): OocFinding[] {
     const severityRaw = String(obj.severity ?? "warn").toLowerCase();
     const severity: OocFinding["severity"] =
       severityRaw === "error" || severityRaw === "info" ? severityRaw : "warn";
+    let score: number | undefined;
+    if (typeof obj.score === "number" && Number.isFinite(obj.score)) {
+      score = Math.max(0, Math.min(10, Math.round(obj.score)));
+    }
     findings.push({
       severity,
       excerpt: String(obj.excerpt ?? "").slice(0, 200),
       suggestion: String(obj.suggestion ?? "").slice(0, 400),
+      ...(score !== undefined ? { score } : {}),
     });
   }
   return findings;
@@ -65,17 +70,23 @@ export function findingsToMarkdown(findings: OocFinding[]): string {
     .join("\n");
 }
 
-/** 决定是否需要回炉重写：error 任何一条，或 warn 数量 >= 阈值。 */
+/** 决定是否需要回炉重写：error 任何一条，或 warn 数量 >= 阈值，或 score 低于 minScore。 */
 export function shouldRewriteFromFindings(
   findings: OocFinding[],
-  options: { warnThreshold?: number } = {},
+  options: { warnThreshold?: number; minScore?: number } = {},
 ): boolean {
   const warnThreshold = options.warnThreshold ?? 2;
+  const minScore = options.minScore ?? 0;
   let warns = 0;
+  let lowestScore: number | undefined;
   for (const f of findings) {
     if (f.severity === "error") return true;
     if (f.severity === "warn") warns += 1;
+    if (typeof f.score === "number") {
+      lowestScore = lowestScore === undefined ? f.score : Math.min(lowestScore, f.score);
+    }
   }
+  if (lowestScore !== undefined && lowestScore < minScore) return true;
   return warns >= warnThreshold;
 }
 

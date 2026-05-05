@@ -38,3 +38,5 @@ export * from "./repositories/sample-lib-repo";
 export * from "./repositories/rag-repo";
 // ----- World Relationships (graph, ported from ainovel) -----
 export * from "./repositories/world-relationship-repo";
+// ----- v20: Materials (素材库, top-level inspiration store) -----
+export * from "./repositories/material-repo";

@@ -3,6 +3,10 @@ import { CoverUploader } from "./CoverUploader";
 
 interface BookHeaderProps {
   book: BookSummary;
+  /** v20: 打开「书籍设定 + 全局世界观」对话框 */
+  onOpenSettings?: () => void;
+  /** v20: 打开「书名 + 日均目标」编辑对话框 */
+  onRename?: () => void;
 }
 
 function fmtNum(n: number): string {
@@ -10,7 +14,11 @@ function fmtNum(n: number): string {
   return `${(n / 10_000).toFixed(1)} 万`;
 }
 
-export function BookHeader({ book }: BookHeaderProps): JSX.Element {
+export function BookHeader({
+  book,
+  onOpenSettings,
+  onRename,
+}: BookHeaderProps): JSX.Element {
   const { project, chapterCount, totalWords, todayWords, originCounts, lastChapterUpdatedAt } =
     book;
   return (
@@ -25,6 +33,28 @@ export function BookHeader({ book }: BookHeaderProps): JSX.Element {
         <div className="flex items-baseline gap-2">
           <h1 className="truncate text-xl font-semibold text-ink-100">{project.name}</h1>
           <span className="text-xs text-ink-500">日均目标 {project.dailyGoal} 字</span>
+          <div className="ml-auto flex items-center gap-1 text-[11px]">
+            {onRename && (
+              <button
+                type="button"
+                onClick={onRename}
+                className="rounded border border-ink-700 px-2 py-0.5 text-ink-300 hover:border-sky-500/40 hover:text-sky-200"
+                title="改名 / 修改基础信息"
+              >
+                ✏ 改名
+              </button>
+            )}
+            {onOpenSettings && (
+              <button
+                type="button"
+                onClick={onOpenSettings}
+                className="rounded border border-ink-700 px-2 py-0.5 text-ink-300 hover:border-amber-500/40 hover:text-amber-200"
+                title="设定 / 全局世界观"
+              >
+                ⚙ 设定
+              </button>
+            )}
+          </div>
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-ink-300">
           <Stat label="总字数" value={fmtNum(totalWords)} />
@@ -37,6 +67,11 @@ export function BookHeader({ book }: BookHeaderProps): JSX.Element {
         {lastChapterUpdatedAt && (
           <div className="text-xs text-ink-500">
             最近编辑：{new Date(lastChapterUpdatedAt).toLocaleString()}
+          </div>
+        )}
+        {project.globalWorldview && project.globalWorldview.trim().length > 0 && (
+          <div className="text-[11px] text-amber-300/80">
+            🌍 已设定全局世界观（{project.globalWorldview.length} 字，AutoWriter 会自动注入）
           </div>
         )}
       </div>

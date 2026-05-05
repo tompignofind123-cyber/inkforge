@@ -9,6 +9,12 @@ interface BookListGridProps {
   onClose?: () => void;
   /** 触发"新建书籍"对话框 */
   onCreateBook?: () => void;
+  /** 触发"编辑书名"对话框（v20） */
+  onRenameBook?: (book: BookSummary) => void;
+  /** 触发"删除书籍"对话框（v20） */
+  onDeleteBook?: (book: BookSummary) => void;
+  /** 触发"书籍设定 / 全局世界观"对话框（v20） */
+  onOpenSettings?: (book: BookSummary) => void;
 }
 
 function fmtNum(n: number): string {
@@ -26,6 +32,9 @@ export function BookListGrid({
   onPickBook,
   onClose,
   onCreateBook,
+  onRenameBook,
+  onDeleteBook,
+  onOpenSettings,
 }: BookListGridProps): JSX.Element {
   return (
     <div className="flex h-full flex-col">
@@ -71,52 +80,100 @@ export function BookListGrid({
             {books.map((book) => {
               const opened = openIds.has(book.project.id);
               return (
-                <button
+                <div
                   key={book.project.id}
-                  type="button"
-                  onClick={() => onPickBook(book.project.id)}
-                  className={`group flex flex-col items-center gap-2 rounded-lg border p-3 text-left transition-colors ${
+                  className={`group relative flex flex-col items-center gap-2 rounded-lg border p-3 text-left transition-colors ${
                     opened
                       ? "border-amber-500/40 bg-amber-500/10"
                       : "border-ink-700 bg-ink-900/40 hover:border-amber-500/30 hover:bg-ink-800/60"
                   }`}
                 >
-                  <CoverUploader
-                    projectId={book.project.id}
-                    size="lg"
-                    editable={false}
-                    fallbackName={book.project.name}
-                  />
-                  <div className="w-full">
-                    <div className="truncate text-sm font-medium text-ink-100">
-                      {book.project.name}
-                    </div>
-                    <div className="mt-0.5 flex flex-wrap gap-1 text-[11px] text-ink-400">
-                      <span>{book.chapterCount} 章</span>
-                      <span>· {fmtNum(book.totalWords)} 字</span>
-                    </div>
-                    <div className="mt-1 flex gap-1 text-[10px]">
-                      {book.originCounts["ai-auto"] > 0 && (
-                        <span className="rounded bg-violet-500/20 px-1 text-violet-200">
-                          🤖 {book.originCounts["ai-auto"]}
-                        </span>
+                  <button
+                    type="button"
+                    onClick={() => onPickBook(book.project.id)}
+                    className="flex w-full flex-col items-center gap-2 text-left"
+                  >
+                    <CoverUploader
+                      projectId={book.project.id}
+                      size="lg"
+                      editable={false}
+                      fallbackName={book.project.name}
+                    />
+                    <div className="w-full">
+                      <div className="truncate text-sm font-medium text-ink-100">
+                        {book.project.name}
+                      </div>
+                      <div className="mt-0.5 flex flex-wrap gap-1 text-[11px] text-ink-400">
+                        <span>{book.chapterCount} 章</span>
+                        <span>· {fmtNum(book.totalWords)} 字</span>
+                      </div>
+                      <div className="mt-1 flex gap-1 text-[10px]">
+                        {book.originCounts["ai-auto"] > 0 && (
+                          <span className="rounded bg-violet-500/20 px-1 text-violet-200">
+                            🤖 {book.originCounts["ai-auto"]}
+                          </span>
+                        )}
+                        {book.originCounts["ai-assisted"] > 0 && (
+                          <span className="rounded bg-sky-500/20 px-1 text-sky-200">
+                            ✍🤖 {book.originCounts["ai-assisted"]}
+                          </span>
+                        )}
+                        {book.originCounts.manual > 0 && (
+                          <span className="rounded bg-emerald-500/20 px-1 text-emerald-200">
+                            ✍ {book.originCounts.manual}
+                          </span>
+                        )}
+                      </div>
+                      {opened && (
+                        <div className="mt-1 text-[10px] text-amber-300">已在 Tab 中打开</div>
                       )}
-                      {book.originCounts["ai-assisted"] > 0 && (
-                        <span className="rounded bg-sky-500/20 px-1 text-sky-200">
-                          ✍🤖 {book.originCounts["ai-assisted"]}
-                        </span>
+                    </div>
+                  </button>
+                  {/* hover 时显示的快捷操作（v20） */}
+                  {(onRenameBook || onDeleteBook || onOpenSettings) && (
+                    <div className="pointer-events-none absolute right-1.5 top-1.5 flex gap-1 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100">
+                      {onOpenSettings && (
+                        <button
+                          type="button"
+                          title="设定 / 全局世界观"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenSettings(book);
+                          }}
+                          className="rounded bg-ink-900/80 px-1.5 py-0.5 text-[12px] text-ink-200 hover:bg-amber-500/30 hover:text-amber-100"
+                        >
+                          ⚙
+                        </button>
                       )}
-                      {book.originCounts.manual > 0 && (
-                        <span className="rounded bg-emerald-500/20 px-1 text-emerald-200">
-                          ✍ {book.originCounts.manual}
-                        </span>
+                      {onRenameBook && (
+                        <button
+                          type="button"
+                          title="改名 / 修改基础信息"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRenameBook(book);
+                          }}
+                          className="rounded bg-ink-900/80 px-1.5 py-0.5 text-[12px] text-ink-200 hover:bg-sky-500/30 hover:text-sky-100"
+                        >
+                          ✏
+                        </button>
+                      )}
+                      {onDeleteBook && (
+                        <button
+                          type="button"
+                          title="删除书籍"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteBook(book);
+                          }}
+                          className="rounded bg-ink-900/80 px-1.5 py-0.5 text-[12px] text-ink-200 hover:bg-rose-500/30 hover:text-rose-100"
+                        >
+                          🗑
+                        </button>
                       )}
                     </div>
-                    {opened && (
-                      <div className="mt-1 text-[10px] text-amber-300">已在 Tab 中打开</div>
-                    )}
-                  </div>
-                </button>
+                  )}
+                </div>
               );
             })}
           </div>

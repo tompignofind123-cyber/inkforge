@@ -14,6 +14,8 @@ export interface ProjectRecord {
   tags: string[];
   masterOutline: string;
   preRefineMasterOutline: string | null;
+  // ----- v20: per-book global worldview prose, injected into AutoWriter ----
+  globalWorldview: string;
 }
 
 export interface ChapterRecord {
@@ -735,4 +737,23 @@ export interface CharacterLetterRecord {
   model: string | null;
   tokensIn: number;
   tokensOut: number;
+}
+
+// =====================================================================
+// v20 · Materials (素材库) — independent top-level inspiration store.
+// Orthogonal to sample_libs (style references), world_entries (lore graph),
+// research_notes (web clippings). Backs the standalone "素材库" page.
+// =====================================================================
+
+export type MaterialKind = "note" | "idea" | "fragment" | "reference";
+
+export interface MaterialRecord {
+  id: string;
+  projectId: string;
+  kind: MaterialKind;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
 }

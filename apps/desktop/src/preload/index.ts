@@ -323,6 +323,12 @@ const api: InkforgeApi = {
     fromOutline: (input) => ipcRenderer.invoke(ipcChannels.chapterGenerateFromOutline, input),
     commitDraft: (input) => ipcRenderer.invoke(ipcChannels.chapterCommitDraft, input),
   },
+  material: {
+    list: (input) => ipcRenderer.invoke(ipcChannels.materialList, input),
+    create: (input) => ipcRenderer.invoke(ipcChannels.materialCreate, input),
+    update: (input) => ipcRenderer.invoke(ipcChannels.materialUpdate, input),
+    delete: (input) => ipcRenderer.invoke(ipcChannels.materialDelete, input),
+  },
 };
 
 try {
